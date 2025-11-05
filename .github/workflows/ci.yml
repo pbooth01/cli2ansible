@@ -67,3 +67,5 @@ jobs:
           files: ./coverage.xml
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
+          override_branch: ${{ github.ref_name }}
+          override_commit: ${{ github.sha }}
