@@ -57,6 +57,11 @@ dmypy.json
 
 # SpecStory
 .specstory
+.specstory/
+
+# Claude Code
+.claude/cache/
+.claude/logs/
 
 # Docker
 *.log
