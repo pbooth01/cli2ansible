@@ -1,7 +1,6 @@
 """S3/MinIO object store adapter."""
 import boto3
 from botocore.client import Config
-
 from cli2ansible.domain.ports import ObjectStorePort
 
 
@@ -44,7 +43,8 @@ class S3ObjectStore(ObjectStorePort):
     def download(self, key: str) -> bytes:
         """Download artifact."""
         response = self.client.get_object(Bucket=self.bucket, Key=key)
-        return response["Body"].read()
+        body_data: bytes = response["Body"].read()
+        return body_data
 
     def delete(self, key: str) -> None:
         """Delete artifact."""
@@ -52,8 +52,9 @@ class S3ObjectStore(ObjectStorePort):
 
     def generate_url(self, key: str, expires_in: int = 3600) -> str:
         """Generate presigned URL."""
-        return self.client.generate_presigned_url(
+        url: str = self.client.generate_presigned_url(
             "get_object",
             Params={"Bucket": self.bucket, "Key": key},
             ExpiresIn=expires_in,
         )
+        return url

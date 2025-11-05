@@ -1,9 +1,8 @@
 """Ansible role generator."""
-import os
 from pathlib import Path
+from typing import Any
 
 import yaml
-
 from cli2ansible.domain.models import Role
 from cli2ansible.domain.ports import RoleGeneratorPort
 
@@ -47,9 +46,9 @@ class AnsibleRoleGenerator(RoleGeneratorPort):
 
     def _generate_tasks(self, role: Role, output_file: Path) -> None:
         """Generate tasks file."""
-        tasks_data = []
+        tasks_data: list[dict[str, Any]] = []
         for task in role.tasks:
-            task_dict = {"name": task.name, task.module: task.args}
+            task_dict: dict[str, Any] = {"name": task.name, task.module: task.args}
             if task.become:
                 task_dict["become"] = True
             if task.changed_when:

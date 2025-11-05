@@ -1,0 +1,68 @@
+version: 1
+
+agents:
+  - id: test-agent
+    name: TestAgent
+    description: Generates/extends tests, runs test plans, and proposes coverage deltas
+    path: prompts/agents/test-agent.yaml
+    tags: [testing, quality, pytest]
+    inputs: [diff, codebase_map]
+
+  - id: security-agent
+    name: SecurityAgent
+    description: Performs secure code review and basic threat modeling
+    path: prompts/agents/security-agent.yaml
+    tags: [security, review, compliance]
+    inputs: [diff, context]
+
+  - id: refactor-agent
+    name: RefactorAgent
+    description: Suggests refactorings to improve code quality and maintainability
+    path: prompts/agents/refactor-agent.yaml
+    tags: [refactoring, quality, architecture]
+    inputs: [file_path, metrics]
+
+  - id: documentation-agent
+    name: DocumentationAgent
+    description: Generates and updates technical documentation
+    path: prompts/agents/documentation-agent.yaml
+    tags: [documentation, api, architecture]
+    inputs: [scope, existing_docs]
+
+snippets:
+  - id: unit-test-harness
+    name: Unit Test Harness
+    description: Standard patterns for writing unit tests
+    path: prompts/snippets/unit-test-harness.md
+    tags: [testing, pytest]
+
+  - id: threat-model-checklist
+    name: Threat Model Checklist
+    description: STRIDE-based threat modeling checklist
+    path: prompts/snippets/threat-model-checklist.md
+    tags: [security, threat-modeling]
+
+  - id: api-documentation-template
+    name: API Documentation Template
+    description: Template for documenting REST APIs
+    path: prompts/snippets/api-documentation-template.md
+    tags: [documentation, api]
+
+  - id: prd-template
+    name: PRD Template
+    description: Product Requirements Document template
+    path: docs/prds/TEMPLATE.md
+    tags: [planning, product]
+
+conventions:
+  - id: code-style
+    name: General Code Style
+    path: docs/conventions/CODE_STYLE.md
+
+  - id: python-style
+    name: Python Conventions
+    path: docs/conventions/python.md
+
+  - id: api-style
+    name: Backend API Conventions
+    path: docs/conventions/backend_api.md

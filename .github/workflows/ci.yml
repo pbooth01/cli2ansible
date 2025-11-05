@@ -2,9 +2,13 @@ name: ci
 
 on:
   pull_request:
-    branches: [ release ]
+    branches:
+      - release
+      - 'release-*'
   push:
-    branches: [ release ]
+    branches:
+      - release
+      - 'release-*'
 
 jobs:
   build:
@@ -42,11 +46,10 @@ jobs:
         uses: actions/cache@v3
         with:
           path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/pyproject.toml') }}
 
       - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --with ansible --no-interaction --no-ansi
+        run: poetry install --no-interaction --no-ansi
 
       - name: Lint & Type check
         run: |
@@ -59,7 +62,10 @@ jobs:
         run: poetry run pytest --maxfail=1 --disable-warnings -q --cov=src --cov-report=xml
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml
           fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+          override_branch: ${{ github.ref_name }}
+          override_commit: ${{ github.sha }}

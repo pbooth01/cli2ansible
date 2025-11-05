@@ -157,4 +157,5 @@ class CompilePlaybook:
                 artifact_data = f.read()
 
             key = f"sessions/{session_id}/role.zip"
-            return self.store.upload(key, artifact_data, "application/zip")
+            result: str = self.store.upload(key, artifact_data, "application/zip")
+            return result
