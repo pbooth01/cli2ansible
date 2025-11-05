@@ -2,7 +2,8 @@
 
 **Turn manual terminal workflows into reproducible Ansible playbooks.**
 
-![CI Status](https://github.com/yourusername/cli2ansible/workflows/ci/badge.svg)
+[![CI Status](https://github.com/pbooth01/cli2ansible/workflows/ci/badge.svg)](https://github.com/pbooth01/cli2ansible/actions)
+[![Code Coverage](https://codecov.io/gh/pbooth01/cli2ansible/branch/main/graph/badge.svg)](https://codecov.io/gh/pbooth01/cli2ansible)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## 🎯 Overview
@@ -30,7 +31,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/cli2ansible.git
+git clone https://github.com/pbooth01/cli2ansible.git
 cd cli2ansible
 
 # Install Poetry (if not already installed)
