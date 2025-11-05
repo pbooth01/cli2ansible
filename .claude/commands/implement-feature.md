@@ -1,5 +1,5 @@
 ---
-description: Generate a complete feature implementation workflow from PRD to PR
+description: Generate PRD (if needed), implement feature, run tests, security review, and create PR
 allowed-tools: Bash(*), Read(*), Write(*), Edit(*), Glob(*), Grep(*), Task(*), TodoWrite(*), WebFetch(*), WebSearch(*)
 ---
 
@@ -11,11 +11,68 @@ You are a feature implementation orchestrator for the cli2ansible project.
 Generate and execute a complete workflow to implement a feature from PRD through to PR creation, using specialized agents and ensuring all quality checks pass.
 
 ## Context Setup
-First, gather project context:
+First, determine if a PRD exists:
 
+**If user provides a PRD path or reference:**
 1. Read `VERSION` file to determine release branch (`release-<version>`)
-2. Read the PRD content (user will provide path or text)
+2. Read the PRD content from the specified path
 3. Load specialized agent definitions from `prompts/agents/`
+4. Proceed to Step 1: Planning
+
+**If user provides only a feature description (no PRD):**
+1. Read `VERSION` file to determine release branch (`release-<version>`)
+2. Generate PRD using PRDAgent (see PRD Generation Workflow below)
+3. **IMPORTANT:** Present the generated PRD to the user for review
+4. Wait for user confirmation or edits before proceeding
+5. Load specialized agent definitions from `prompts/agents/`
+6. Proceed to Step 1: Planning
+
+### PRD Generation Workflow (when no PRD provided)
+
+Use the Task tool with general-purpose agent:
+
+```
+Use Task tool with general-purpose agent:
+
+"Read prompts/agents/prd-agent.yaml to understand PRDAgent's role and responsibilities.
+
+Acting as PRDAgent, generate a comprehensive PRD for the following feature request:
+
+<user's feature description>
+
+Follow the PRDAgent checklist:
+1. Analyze the codebase to understand existing patterns
+   - Search for similar features or integrations
+   - Review architecture (hexagonal pattern)
+   - Identify affected components
+2. Research dependencies and integration points
+   - External APIs or services
+   - Internal components that will change
+3. Generate complete PRD following docs/prds/TEMPLATE.md
+   - Include all required sections
+   - Provide specific, testable requirements
+   - Define clear success metrics
+   - Identify risks and mitigations
+
+Codebase context:
+- Architecture: Hexagonal (ports & adapters)
+- Tech stack: Python 3.11+, FastAPI, SQLAlchemy, PostgreSQL
+- Testing: pytest with coverage requirements
+- Key directories:
+  - src/cli2ansible/domain/ (business logic)
+  - src/cli2ansible/adapters/ (external integrations)
+  - src/cli2ansible/domain/ports.py (interfaces)
+
+Return the complete PRD in markdown format ready to save to docs/prds/<feature-name>.md"
+```
+
+After receiving the PRD from PRDAgent:
+1. Save it to `docs/prds/<feature-name>.md`
+2. Present the PRD to the user with a summary
+3. Ask: "Please review the PRD above. Reply with 'approved' to proceed with implementation, or provide feedback for revisions."
+4. **WAIT for user response before proceeding**
+5. If user requests changes, update the PRD and ask for approval again
+6. Only proceed to implementation after explicit user approval
 
 ## Implementation Workflow
 
@@ -186,20 +243,23 @@ EOF
 - **Formatting:** black + ruff
 
 ## Specialized Agents
+- **PRDAgent** (`prompts/agents/prd-agent.yaml`): PRD generation from feature requests
 - **TestAgent** (`prompts/agents/test-agent.yaml`): Comprehensive test generation
 - **SecurityAgent** (`prompts/agents/security-agent.yaml`): Security review & threat modeling
 - **RefactorAgent** (`prompts/agents/refactor-agent.yaml`): Code quality improvements
 - **DocumentationAgent** (`prompts/agents/documentation-agent.yaml`): API & architecture documentation
 
 ## Mandatory Rules
-1. **MUST** use TodoWrite to track all tasks and mark them complete
-2. **MUST** delegate test generation to TestAgent
-3. **MUST** delegate security review to SecurityAgent
-4. **MUST** pass all quality checks (format, lint, type-check, test)
-5. **MUST** address High/Critical security findings
-6. **MUST** follow hexagonal architecture patterns
-7. **MUST** maintain or improve code coverage
-8. **MUST** create feature branch targeting release branch from VERSION
+1. **MUST** generate PRD using PRDAgent if user doesn't provide one
+2. **MUST** wait for explicit user approval of PRD before implementing
+3. **MUST** use TodoWrite to track all tasks and mark them complete
+4. **MUST** delegate test generation to TestAgent
+5. **MUST** delegate security review to SecurityAgent
+6. **MUST** pass all quality checks (format, lint, type-check, test)
+7. **MUST** address High/Critical security findings
+8. **MUST** follow hexagonal architecture patterns
+9. **MUST** maintain or improve code coverage
+10. **MUST** create feature branch targeting release branch from VERSION
 
 ## Error Handling
 If any step fails:
@@ -209,4 +269,12 @@ If any step fails:
 4. Retry from the failed step
 5. Do not skip steps or mark incomplete work as done
 
-Start by reading the VERSION file and creating your TodoWrite implementation plan.
+## Getting Started
+
+**Step 1:** Read the VERSION file to determine the target release branch.
+
+**Step 2:** Determine if a PRD exists:
+- If the user provided a PRD path (e.g., "docs/prds/my-feature.md"), read it and proceed to implementation.
+- If the user only provided a feature description, use PRDAgent to generate a PRD, present it for approval, and WAIT for user confirmation before proceeding.
+
+**Step 3:** After PRD is confirmed, create a TodoWrite implementation plan and begin work.
