@@ -2,9 +2,13 @@ name: ci
 
 on:
   pull_request:
-    branches: [ release ]
+    branches:
+      - release
+      - 'release-*'
   push:
-    branches: [ release ]
+    branches:
+      - release
+      - 'release-*'
 
 jobs:
   build:
