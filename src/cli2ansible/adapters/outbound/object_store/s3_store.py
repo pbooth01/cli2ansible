@@ -1,4 +1,5 @@
 """S3/MinIO object store adapter."""
+
 import boto3
 from botocore.client import Config
 from cli2ansible.domain.ports import ObjectStorePort
@@ -33,7 +34,9 @@ class S3ObjectStore(ObjectStorePort):
         except Exception:
             self.client.create_bucket(Bucket=self.bucket)
 
-    def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
+    def upload(
+        self, key: str, data: bytes, content_type: str = "application/octet-stream"
+    ) -> str:
         """Upload artifact and return URL."""
         self.client.put_object(
             Bucket=self.bucket, Key=key, Body=data, ContentType=content_type

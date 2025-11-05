@@ -1,4 +1,5 @@
 """Rule-based command to Ansible task translator."""
+
 import re
 from typing import Any
 
@@ -96,7 +97,10 @@ class RulesEngine(TranslatorPort):
 
     def _systemctl(self, command: Command) -> Task | None:
         """Translate systemctl commands."""
-        match = re.match(r"systemctl\s+(start|stop|restart|enable|disable)\s+(\S+)", command.normalized)
+        match = re.match(
+            r"systemctl\s+(start|stop|restart|enable|disable)\s+(\S+)",
+            command.normalized,
+        )
         if match:
             action, service = match.groups()
             state_map = {"start": "started", "stop": "stopped", "restart": "restarted"}

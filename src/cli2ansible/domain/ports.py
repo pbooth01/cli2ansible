@@ -1,8 +1,17 @@
 """Port interfaces (hexagonal architecture)."""
+
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from cli2ansible.domain.models import Command, Event, Role, Session, Task
+from cli2ansible.domain.models import (
+    CleanedCommand,
+    CleaningReport,
+    Command,
+    Event,
+    Role,
+    Session,
+    Task,
+)
 
 
 class CapturePort(ABC):
@@ -75,7 +84,9 @@ class ObjectStorePort(ABC):
     """Port for artifact storage."""
 
     @abstractmethod
-    def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
+    def upload(
+        self, key: str, data: bytes, content_type: str = "application/octet-stream"
+    ) -> str:
         """Upload artifact and return URL."""
         ...
 
@@ -92,4 +103,19 @@ class ObjectStorePort(ABC):
     @abstractmethod
     def generate_url(self, key: str, expires_in: int = 3600) -> str:
         """Generate presigned URL."""
+        ...
+
+
+class LLMPort(ABC):
+    """Port for LLM-based command analysis and cleaning."""
+
+    @abstractmethod
+    def clean_commands(
+        self, commands: list[Command], session_id: UUID
+    ) -> tuple[list[CleanedCommand], CleaningReport]:
+        """
+        Analyze terminal commands and remove duplicates and error corrections.
+
+        Returns a tuple of (cleaned_commands, cleaning_report).
+        """
         ...

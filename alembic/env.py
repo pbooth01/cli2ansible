@@ -1,4 +1,5 @@
 """Alembic environment configuration."""
+
 from logging.config import fileConfig
 
 from cli2ansible.adapters.outbound.db.orm import Base

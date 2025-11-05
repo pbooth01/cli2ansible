@@ -1,6 +1,5 @@
 """Integration tests for domain services."""
 
-
 from cli2ansible.adapters.outbound.db.repository import SQLAlchemyRepository
 from cli2ansible.domain.models import Event
 from cli2ansible.domain.services import IngestSession
@@ -22,7 +21,9 @@ def test_session_lifecycle(repository: SQLAlchemyRepository) -> None:
     assert retrieved.name == "test-session"
 
 
-def test_event_ingestion(ingest_service: IngestSession, repository: SQLAlchemyRepository) -> None:
+def test_event_ingestion(
+    ingest_service: IngestSession, repository: SQLAlchemyRepository
+) -> None:
     """Test event ingestion."""
     session = ingest_service.create_session("test-session")
 
@@ -50,7 +51,9 @@ def test_event_ingestion(ingest_service: IngestSession, repository: SQLAlchemyRe
     assert len(saved_events) == 2
 
 
-def test_command_extraction(ingest_service: IngestSession, repository: SQLAlchemyRepository) -> None:
+def test_command_extraction(
+    ingest_service: IngestSession, repository: SQLAlchemyRepository
+) -> None:
     """Test command extraction from events."""
     session = ingest_service.create_session("test-session")
 

@@ -1,4 +1,5 @@
 """Pytest fixtures."""
+
 import pytest
 from cli2ansible.adapters.outbound.db.repository import SQLAlchemyRepository
 from cli2ansible.adapters.outbound.generators.ansible_role import AnsibleRoleGenerator

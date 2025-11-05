@@ -1,4 +1,5 @@
 """Unit tests for translator."""
+
 from uuid import uuid4
 
 import pytest

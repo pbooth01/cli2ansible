@@ -1,4 +1,5 @@
 """Application settings using Pydantic."""
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -22,6 +23,10 @@ class Settings(BaseSettings):
     # Application
     log_level: str = Field(default="INFO")
     debug: bool = Field(default=False)
+
+    # LLM (Anthropic Claude)
+    anthropic_api_key: str = Field(default="")
+    max_commands_for_cleaning: int = Field(default=500)
 
 
 settings = Settings()

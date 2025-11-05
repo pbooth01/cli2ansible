@@ -1,13 +1,17 @@
 """FastAPI HTTP adapter."""
+
 from typing import Any
 from uuid import UUID
 
-from cli2ansible.domain.services import CompilePlaybook, IngestSession
+from cli2ansible.domain.services import CleanSession, CompilePlaybook, IngestSession
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 
 from .schemas import (
     ArtifactResponse,
+    CleanedCommandResponse,
+    CleaningReportResponse,
+    CleanSessionResponse,
     CompileRequest,
     EventCreate,
     ReportResponse,
@@ -19,6 +23,7 @@ from .schemas import (
 def create_app(
     ingest_service: IngestSession,
     compile_service: CompilePlaybook,
+    clean_service: CleanSession | None = None,
 ) -> FastAPI:
     """Create FastAPI application."""
     app = FastAPI(title="cli2ansible", version="0.1.0")
@@ -59,7 +64,9 @@ def create_app(
         )
 
     @app.post("/sessions/{session_id}/events")
-    async def upload_events(session_id: UUID, events: list[EventCreate]) -> dict[str, str]:
+    async def upload_events(
+        session_id: UUID, events: list[EventCreate]
+    ) -> dict[str, str]:
         """Upload events for a session."""
         from cli2ansible.domain.models import Event
 
@@ -126,9 +133,64 @@ def create_app(
             return StreamingResponse(
                 iter([data]),
                 media_type="application/zip",
-                headers={"Content-Disposition": f"attachment; filename=role_{session_id}.zip"},
+                headers={
+                    "Content-Disposition": f"attachment; filename=role_{session_id}.zip"
+                },
             )
         except Exception as e:
-            raise HTTPException(status_code=404, detail=f"Artifact not found: {str(e)}") from e
+            raise HTTPException(
+                status_code=404, detail=f"Artifact not found: {str(e)}"
+            ) from e
+
+    @app.post("/sessions/{session_id}/clean", response_model=CleanSessionResponse)
+    async def clean_session(session_id: UUID) -> Any:
+        """Clean terminal session by removing duplicates and error corrections."""
+        if clean_service is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Clean service not available. Configure ANTHROPIC_API_KEY.",
+            )
+
+        session = ingest_service.repo.get(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        # Extract commands from events first
+        ingest_service.extract_commands(session_id)
+
+        # Validate command count before processing
+        from cli2ansible.settings import settings
+
+        commands = ingest_service.repo.get_commands(session_id)
+        if len(commands) > settings.max_commands_for_cleaning:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Session has {len(commands)} commands, maximum {settings.max_commands_for_cleaning} allowed for cleaning",
+            )
+
+        cleaned_commands, report = clean_service.clean_commands(session_id)
+
+        return CleanSessionResponse(
+            cleaned_commands=[
+                CleanedCommandResponse(
+                    command=cmd.command,
+                    reason=cmd.reason,
+                    first_occurrence=cmd.first_occurrence,
+                    occurrence_count=cmd.occurrence_count,
+                    is_duplicate=cmd.is_duplicate,
+                    is_error_correction=cmd.is_error_correction,
+                )
+                for cmd in cleaned_commands
+            ],
+            report=CleaningReportResponse(
+                session_id=report.session_id,
+                original_command_count=report.original_command_count,
+                cleaned_command_count=report.cleaned_command_count,
+                duplicates_removed=report.duplicates_removed,
+                error_corrections_removed=report.error_corrections_removed,
+                cleaning_rationale=report.cleaning_rationale,
+                generated_at=report.generated_at,
+            ),
+        )
 
     return app
