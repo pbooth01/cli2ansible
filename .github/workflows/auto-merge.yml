@@ -19,7 +19,8 @@ jobs:
       startsWith(github.head_ref, 'feat/') ||
       startsWith(github.head_ref, 'fix/') ||
       startsWith(github.head_ref, 'docs/') ||
-      startsWith(github.head_ref, 'feature-')
+      startsWith(github.head_ref, 'feature-') ||
+      startsWith(github.head_ref, 'feature/') ||
     steps:
       - name: Wait for CI to complete
         uses: fountainhead/action-wait-for-check@v1.1.0
