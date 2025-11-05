@@ -1,6 +1,6 @@
 # Branch Protection Setup
 
-
+# Hello
 
 To enable auto-merge on successful CI, configure these branch protection rules in GitHub.
 
