@@ -1,4 +1,5 @@
 """Pydantic schemas for API."""
+
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -28,9 +29,9 @@ class EventCreate(BaseModel):
     """Request schema for creating events."""
 
     timestamp: float
-    event_type: str
-    data: str
-    sequence: int = 0
+    event_type: str = Field(..., max_length=10)
+    data: str = Field(..., max_length=10000)
+    sequence: int = Field(default=0, ge=0)
 
 
 class CompileRequest(BaseModel):
@@ -57,3 +58,33 @@ class ArtifactResponse(BaseModel):
 
     artifact_url: str
     download_url: str
+
+
+class CleanedCommandResponse(BaseModel):
+    """Response schema for cleaned command."""
+
+    command: str
+    reason: str
+    first_occurrence: float
+    occurrence_count: int
+    is_duplicate: bool
+    is_error_correction: bool
+
+
+class CleaningReportResponse(BaseModel):
+    """Response schema for cleaning report."""
+
+    session_id: UUID
+    original_command_count: int
+    cleaned_command_count: int
+    duplicates_removed: int
+    error_corrections_removed: int
+    cleaning_rationale: str
+    generated_at: datetime
+
+
+class CleanSessionResponse(BaseModel):
+    """Response schema for clean session operation."""
+
+    cleaned_commands: list[CleanedCommandResponse]
+    report: CleaningReportResponse

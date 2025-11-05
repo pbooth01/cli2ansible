@@ -16,7 +16,9 @@ class MockObjectStore(ObjectStorePort):
     def __init__(self) -> None:
         self.storage: dict[str, bytes] = {}
 
-    def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
+    def upload(
+        self, key: str, data: bytes, content_type: str = "application/octet-stream"
+    ) -> str:
         self.storage[key] = data
 
         return key
@@ -67,7 +69,9 @@ def test_create_session(client: TestClient) -> None:
 def test_get_session(client: TestClient) -> None:
     """Test getting a session."""
     # Create session
-    create_resp = client.post("/sessions", json={"name": "test-session", "metadata": {}})
+    create_resp = client.post(
+        "/sessions", json={"name": "test-session", "metadata": {}}
+    )
     session_id = create_resp.json()["id"]
 
     # Get session
@@ -79,7 +83,9 @@ def test_get_session(client: TestClient) -> None:
 def test_upload_events(client: TestClient) -> None:
     """Test uploading events."""
     # Create session
-    create_resp = client.post("/sessions", json={"name": "test-session", "metadata": {}})
+    create_resp = client.post(
+        "/sessions", json={"name": "test-session", "metadata": {}}
+    )
     session_id = create_resp.json()["id"]
 
     # Upload events

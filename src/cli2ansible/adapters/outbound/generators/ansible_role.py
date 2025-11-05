@@ -1,4 +1,5 @@
 """Ansible role generator."""
+
 from pathlib import Path
 from typing import Any
 
@@ -125,13 +126,16 @@ This role contains {len(role.tasks)} tasks:
         for i, task in enumerate(role.tasks, 1):
             content += f"{i}. {task.name} (module: `{task.module}`, confidence: {task.confidence.value})\n"
 
-        content += """
+        content += (
+            """
 ## Usage
 
 ```yaml
 - hosts: all
   roles:
-    - """ + role.name + """
+    - """
+            + role.name
+            + """
 ```
 
 ## Testing
@@ -142,6 +146,7 @@ Run Molecule tests:
 molecule test
 ```
 """
+        )
         with open(output_file, "w") as f:
             f.write(content)
 
@@ -155,7 +160,10 @@ molecule test
             "dependency": {"name": "galaxy"},
             "driver": {"name": "docker"},
             "platforms": [
-                {"name": "instance", "image": "geerlingguy/docker-ubuntu2204-ansible:latest"}
+                {
+                    "name": "instance",
+                    "image": "geerlingguy/docker-ubuntu2204-ansible:latest",
+                }
             ],
             "provisioner": {"name": "ansible"},
             "verifier": {"name": "ansible"},
@@ -165,14 +173,24 @@ molecule test
 
         # converge.yml
         converge = [
-            {"name": "Converge", "hosts": "all", "tasks": [{"name": "Include role", "include_role": {"name": role.name}}]}
+            {
+                "name": "Converge",
+                "hosts": "all",
+                "tasks": [
+                    {"name": "Include role", "include_role": {"name": role.name}}
+                ],
+            }
         ]
         with open(default_dir / "converge.yml", "w") as f:
             yaml.dump(converge, f, default_flow_style=False, sort_keys=False)
 
         # verify.yml
         verify = [
-            {"name": "Verify", "hosts": "all", "tasks": [{"name": "Example assertion", "assert": {"that": True}}]}
+            {
+                "name": "Verify",
+                "hosts": "all",
+                "tasks": [{"name": "Example assertion", "assert": {"that": True}}],
+            }
         ]
         with open(default_dir / "verify.yml", "w") as f:
             yaml.dump(verify, f, default_flow_style=False, sort_keys=False)
