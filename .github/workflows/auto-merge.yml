@@ -3,7 +3,9 @@ name: Auto-merge on CI Success
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    branches: [release]
+    branches:
+      - release
+      - 'release-*'
 
 permissions:
   contents: write
