@@ -1,9 +1,7 @@
 """Ansible role generator."""
-import os
 from pathlib import Path
 
 import yaml
-
 from cli2ansible.domain.models import Role
 from cli2ansible.domain.ports import RoleGeneratorPort
 

@@ -2,11 +2,9 @@
 from typing import Any
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, HTTPException, UploadFile
-from fastapi.responses import StreamingResponse
-
 from cli2ansible.domain.services import CompilePlaybook, IngestSession
-from cli2ansible.settings import settings
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 
 from .schemas import (
     ArtifactResponse,
@@ -143,6 +141,6 @@ def create_app(
                 headers={"Content-Disposition": f"attachment; filename=role_{session_id}.zip"},
             )
         except Exception as e:
-            raise HTTPException(status_code=404, detail=f"Artifact not found: {str(e)}")
+            raise HTTPException(status_code=404, detail=f"Artifact not found: {str(e)}") from e
 
     return app

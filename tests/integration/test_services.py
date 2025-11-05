@@ -1,7 +1,5 @@
 """Integration tests for domain services."""
-from uuid import UUID
 
-import pytest
 
 from cli2ansible.adapters.outbound.db.repository import SQLAlchemyRepository
 from cli2ansible.domain.models import Event

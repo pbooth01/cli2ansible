@@ -1,11 +1,11 @@
 """SQLAlchemy repository implementation."""
 from uuid import UUID
 
-from sqlalchemy import create_engine, select
-from sqlalchemy.orm import Session, sessionmaker
-
-from cli2ansible.domain.models import Command, Event, Session as DomainSession, SessionStatus
+from cli2ansible.domain.models import Command, Event, SessionStatus
+from cli2ansible.domain.models import Session as DomainSession
 from cli2ansible.domain.ports import SessionRepositoryPort
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import sessionmaker
 
 from .orm import Base, CommandORM, EventORM, SessionORM
 

@@ -2,12 +2,11 @@
 from uuid import uuid4
 
 import pytest
-
 from cli2ansible.adapters.outbound.translator.rules_engine import RulesEngine
 from cli2ansible.domain.models import Command, TaskConfidence
 
 
-@pytest.fixture
+@pytest.fixture()
 def translator() -> RulesEngine:
     """Create translator instance."""
     return RulesEngine()
