@@ -21,6 +21,7 @@ class MockObjectStore(ObjectStorePort):
 
     def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
         self.storage[key] = data
+        
         return key
 
     def download(self, key: str) -> bytes:
