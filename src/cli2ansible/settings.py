@@ -1,5 +1,7 @@
 """Application settings using Pydantic."""
 
+from typing import Literal
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -26,6 +28,13 @@ class Settings(BaseSettings):
 
     # LLM (Anthropic Claude)
     anthropic_api_key: str = Field(default="")
+
+    # LLM (OpenAI)
+    openai_api_key: str = Field(default="")
+
+    # LLM Provider Selection
+    llm_provider: Literal["anthropic", "openai"] = Field(default="anthropic")
+
     max_commands_for_cleaning: int = Field(default=500)
 
 
