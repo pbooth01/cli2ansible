@@ -1,0 +1,89 @@
+{
+  "project": "cli2ansible",
+  "description": "Turn manual terminal workflows into reproducible Ansible playbooks",
+  "architecture": "hexagonal",
+  "language": "python",
+  "version": "3.11+",
+  "package_manager": "poetry",
+
+  "key_files": [
+    "src/cli2ansible/domain/models.py",
+    "src/cli2ansible/domain/services.py",
+    "src/cli2ansible/domain/ports.py",
+    "src/cli2ansible/app.py",
+    "prompts/registry.yaml",
+    "docs/conventions/CODE_STYLE.md"
+  ],
+
+  "conventions": {
+    "code_style": "docs/conventions/CODE_STYLE.md",
+    "python": "docs/conventions/python.md",
+    "api": "docs/conventions/backend_api.md"
+  },
+
+  "agents": {
+    "test": "prompts/agents/test-agent.yaml",
+    "security": "prompts/agents/security-agent.yaml",
+    "refactor": "prompts/agents/refactor-agent.yaml",
+    "documentation": "prompts/agents/documentation-agent.yaml"
+  },
+
+  "testing": {
+    "framework": "pytest",
+    "command": "poetry run pytest",
+    "coverage_command": "poetry run pytest --cov=src"
+  },
+
+  "common_tasks": {
+    "install_deps": "make dev-install",
+    "run_tests": "make test",
+    "lint": "make lint",
+    "format": "make format",
+    "start_services": "make docker-up",
+    "stop_services": "make docker-down"
+  },
+
+  "project_context": {
+    "stack": {
+      "framework": "FastAPI",
+      "database": "PostgreSQL + SQLAlchemy",
+      "storage": "S3/MinIO",
+      "testing": "pytest",
+      "linting": "ruff + mypy",
+      "formatting": "black"
+    },
+    "architecture_layers": {
+      "domain": "Pure business logic, no I/O",
+      "ports": "Interfaces/protocols for adapters",
+      "adapters_inbound": "HTTP API, CLI (future)",
+      "adapters_outbound": "Database, S3, translators, generators"
+    },
+    "key_concepts": {
+      "session": "A terminal recording session",
+      "event": "Terminal output event from recording",
+      "command": "Parsed shell command",
+      "task": "Ansible task representation",
+      "role": "Generated Ansible role",
+      "translator": "Converts commands to Ansible tasks"
+    },
+    "security_context": {
+      "auth": "Currently none (future: Bearer tokens)",
+      "sensitive_data": [
+        "Terminal recordings may contain secrets",
+        "Session metadata may contain PII"
+      ],
+      "external_services": [
+        "PostgreSQL (session storage)",
+        "S3/MinIO (artifact storage)"
+      ]
+    }
+  },
+
+  "quick_references": {
+    "add_dependency": "poetry add <package>",
+    "add_dev_dependency": "poetry add --group dev <package>",
+    "create_migration": "poetry run alembic revision -m 'description'",
+    "run_migration": "poetry run alembic upgrade head",
+    "generate_sample_role": "python scripts/generate_sample.py"
+  }
+}

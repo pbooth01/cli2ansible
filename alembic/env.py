@@ -1,11 +1,11 @@
 """Alembic environment configuration."""
 from logging.config import fileConfig
 
-from alembic import context
-from sqlalchemy import engine_from_config, pool
-
 from cli2ansible.adapters.outbound.db.orm import Base
 from cli2ansible.settings import settings
+from sqlalchemy import engine_from_config, pool
+
+from alembic import context
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -2,11 +2,9 @@
 from typing import Any
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, HTTPException, UploadFile
-from fastapi.responses import StreamingResponse
-
 from cli2ansible.domain.services import CompilePlaybook, IngestSession
-from cli2ansible.settings import settings
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 
 from .schemas import (
     ArtifactResponse,
@@ -48,10 +46,7 @@ def create_app(
     @app.get("/sessions/{session_id}", response_model=SessionResponse)
     async def get_session(session_id: UUID) -> Any:
         """Get session by ID."""
-        from cli2ansible.app import get_repository
-
-        repo = get_repository()
-        session = repo.get(session_id)
+        session = ingest_service.repo.get(session_id)
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
         return SessionResponse(
@@ -79,7 +74,7 @@ def create_app(
             for e in events
         ]
         ingest_service.save_events(session_id, domain_events)
-        return {"status": "uploaded", "count": len(events)}
+        return {"status": "uploaded", "count": str(len(events))}
 
     @app.post("/sessions/{session_id}/compile", response_model=ArtifactResponse)
     async def compile_session(session_id: UUID, request: CompileRequest) -> Any:
@@ -94,10 +89,7 @@ def create_app(
         artifact_key = compile_service.export_artifact(role, session_id)
 
         # Generate download URL
-        from cli2ansible.app import get_object_store
-
-        store = get_object_store()
-        download_url = store.generate_url(artifact_key)
+        download_url = compile_service.store.generate_url(artifact_key)
 
         return ArtifactResponse(
             artifact_url=artifact_key,
@@ -107,10 +99,7 @@ def create_app(
     @app.get("/sessions/{session_id}/report", response_model=ReportResponse)
     async def get_report(session_id: UUID) -> Any:
         """Get translation report for a session."""
-        from cli2ansible.app import get_repository
-
-        repo = get_repository()
-        session = repo.get(session_id)
+        session = compile_service.repo.get(session_id)
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
 
@@ -131,18 +120,15 @@ def create_app(
     @app.get("/sessions/{session_id}/playbook")
     async def download_playbook(session_id: UUID) -> StreamingResponse:
         """Download generated playbook artifact."""
-        from cli2ansible.app import get_object_store
-
-        store = get_object_store()
         artifact_key = f"sessions/{session_id}/role.zip"
         try:
-            data = store.download(artifact_key)
+            data = compile_service.store.download(artifact_key)
             return StreamingResponse(
                 iter([data]),
                 media_type="application/zip",
                 headers={"Content-Disposition": f"attachment; filename=role_{session_id}.zip"},
             )
         except Exception as e:
-            raise HTTPException(status_code=404, detail=f"Artifact not found: {str(e)}")
+            raise HTTPException(status_code=404, detail=f"Artifact not found: {str(e)}") from e
 
     return app

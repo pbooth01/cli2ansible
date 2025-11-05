@@ -1,6 +1,6 @@
 """Domain models for cli2ansible."""
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 from uuid import UUID, uuid4
@@ -32,8 +32,8 @@ class Session:
     id: UUID = field(default_factory=uuid4)
     name: str = ""
     status: SessionStatus = SessionStatus.CREATED
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -102,4 +102,4 @@ class Report:
     low_confidence: int = 0
     warnings: list[str] = field(default_factory=list)
     skipped_commands: list[str] = field(default_factory=list)
-    generated_at: datetime = field(default_factory=datetime.utcnow)
+    generated_at: datetime = field(default_factory=lambda: datetime.now(UTC))

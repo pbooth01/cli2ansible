@@ -1,11 +1,12 @@
 """SQLAlchemy repository implementation."""
 from uuid import UUID
 
-from sqlalchemy import create_engine, select
-from sqlalchemy.orm import Session, sessionmaker
-
-from cli2ansible.domain.models import Command, Event, Session as DomainSession, SessionStatus
+from cli2ansible.domain.models import Command, Event, SessionStatus
+from cli2ansible.domain.models import Session as DomainSession
 from cli2ansible.domain.ports import SessionRepositoryPort
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from .orm import Base, CommandORM, EventORM, SessionORM
 
@@ -14,7 +15,22 @@ class SQLAlchemyRepository(SessionRepositoryPort):
     """SQLAlchemy implementation of session repository."""
 
     def __init__(self, database_url: str) -> None:
-        self.engine = create_engine(database_url)
+        # For SQLite in-memory databases, use StaticPool to share the same connection
+        # across all sessions, allowing tables to persist
+        connect_args = {}
+        poolclass = None
+        if database_url.startswith("sqlite") and ":memory:" in database_url:
+            # Use shared cache for in-memory SQLite to allow connection sharing
+            if "cache=shared" not in database_url:
+                database_url = database_url.replace(":memory:", ":memory:?cache=shared")
+            connect_args = {"check_same_thread": False}
+            poolclass = StaticPool
+
+        self.engine = create_engine(
+            database_url,
+            connect_args=connect_args,
+            poolclass=poolclass,
+        )
         self.SessionLocal = sessionmaker(bind=self.engine, expire_on_commit=False)
 
     def create_tables(self) -> None:
@@ -28,7 +44,7 @@ class SQLAlchemyRepository(SessionRepositoryPort):
                 id=str(session.id),
                 name=session.name,
                 status=session.status.value,
-                metadata=session.metadata,
+                session_metadata=session.metadata,
             )
             db.add(orm_session)
             db.commit()
@@ -52,7 +68,7 @@ class SQLAlchemyRepository(SessionRepositoryPort):
 
             orm_session.name = session.name
             orm_session.status = session.status.value
-            orm_session.metadata = session.metadata
+            orm_session.session_metadata = session.metadata
             db.commit()
             db.refresh(orm_session)
             return self._to_domain(orm_session)
@@ -123,7 +139,7 @@ class SQLAlchemyRepository(SessionRepositoryPort):
             status=SessionStatus(orm_session.status),
             created_at=orm_session.created_at,
             updated_at=orm_session.updated_at,
-            metadata=orm_session.metadata,
+            metadata=orm_session.session_metadata,
         )
 
     def _event_to_domain(self, orm_event: EventORM) -> Event:

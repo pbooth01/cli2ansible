@@ -1,9 +1,8 @@
 """Port interfaces (hexagonal architecture)."""
 from abc import ABC, abstractmethod
-from typing import Any
 from uuid import UUID
 
-from cli2ansible.domain.models import Command, Event, Report, Role, Session, Task
+from cli2ansible.domain.models import Command, Event, Role, Session, Task
 
 
 class CapturePort(ABC):

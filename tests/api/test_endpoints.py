@@ -1,16 +1,13 @@
 """API endpoint tests."""
-from typing import Any
 
 import pytest
-from fastapi.testclient import TestClient
-
 from cli2ansible.adapters.inbound.http.api import create_app
 from cli2ansible.adapters.outbound.db.repository import SQLAlchemyRepository
 from cli2ansible.adapters.outbound.generators.ansible_role import AnsibleRoleGenerator
-from cli2ansible.adapters.outbound.object_store.s3_store import S3ObjectStore
 from cli2ansible.adapters.outbound.translator.rules_engine import RulesEngine
 from cli2ansible.domain.ports import ObjectStorePort
 from cli2ansible.domain.services import CompilePlaybook, IngestSession
+from fastapi.testclient import TestClient
 
 
 class MockObjectStore(ObjectStorePort):
@@ -21,6 +18,7 @@ class MockObjectStore(ObjectStorePort):
 
     def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
         self.storage[key] = data
+
         return key
 
     def download(self, key: str) -> bytes:
@@ -34,7 +32,7 @@ class MockObjectStore(ObjectStorePort):
         return f"http://mock/{key}"
 
 
-@pytest.fixture
+@pytest.fixture()
 def client() -> TestClient:
     """Create test client."""
     repo = SQLAlchemyRepository("sqlite:///:memory:")
