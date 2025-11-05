@@ -1,7 +1,6 @@
 """S3/MinIO object store adapter."""
 import boto3
 from botocore.client import Config
-
 from cli2ansible.domain.ports import ObjectStorePort
 
 
