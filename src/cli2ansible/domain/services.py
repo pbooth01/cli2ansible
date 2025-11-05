@@ -1,9 +1,12 @@
 """Domain services (business logic)."""
+
 import re
 from typing import Any
 from uuid import UUID
 
 from cli2ansible.domain.models import (
+    CleanedCommand,
+    CleaningReport,
     Command,
     Event,
     Report,
@@ -14,6 +17,7 @@ from cli2ansible.domain.models import (
     TaskConfidence,
 )
 from cli2ansible.domain.ports import (
+    LLMPort,
     ObjectStorePort,
     RoleGeneratorPort,
     SessionRepositoryPort,
@@ -27,7 +31,9 @@ class IngestSession:
     def __init__(self, repo: SessionRepositoryPort) -> None:
         self.repo = repo
 
-    def create_session(self, name: str, metadata: dict[str, Any] | None = None) -> Session:
+    def create_session(
+        self, name: str, metadata: dict[str, Any] | None = None
+    ) -> Session:
         """Create a new session."""
         session = Session(name=name, metadata=metadata or {})
         return self.repo.create(session)
@@ -54,7 +60,9 @@ class IngestSession:
                 if "\n" in current_line or "\r" in current_line:
                     lines = current_line.split("\n")
                     for line in lines[:-1]:
-                        cmd = self._parse_command_line(line, session_id, event.timestamp)
+                        cmd = self._parse_command_line(
+                            line, session_id, event.timestamp
+                        )
                         if cmd:
                             commands.append(cmd)
                     current_line = lines[-1]
@@ -62,7 +70,9 @@ class IngestSession:
         self.repo.save_commands(commands)
         return commands
 
-    def _parse_command_line(self, line: str, session_id: UUID, timestamp: float) -> Command | None:
+    def _parse_command_line(
+        self, line: str, session_id: UUID, timestamp: float
+    ) -> Command | None:
         """Parse a line to extract command."""
         # Remove ANSI escape codes
         line = re.sub(r"\x1b\[[0-9;]*m", "", line)
@@ -159,3 +169,41 @@ class CompilePlaybook:
             key = f"sessions/{session_id}/role.zip"
             result: str = self.store.upload(key, artifact_data, "application/zip")
             return result
+
+
+class CleanSession:
+    """Service for cleaning terminal session output."""
+
+    def __init__(self, repo: SessionRepositoryPort, llm: LLMPort) -> None:
+        self.repo = repo
+        self.llm = llm
+
+    def clean_commands(
+        self, session_id: UUID
+    ) -> tuple[list[CleanedCommand], CleaningReport]:
+        """
+        Clean terminal session by removing duplicates and error corrections.
+
+        Uses LLM to intelligently identify:
+        - Duplicate commands that were run multiple times
+        - Error corrections where user fixed typos or mistakes
+        - Redundant commands that don't add value
+        """
+        commands = self.repo.get_commands(session_id)
+        if not commands:
+            return [], CleaningReport(
+                session_id=session_id,
+                original_command_count=0,
+                cleaned_command_count=0,
+                duplicates_removed=0,
+                error_corrections_removed=0,
+                cleaning_rationale="No commands found in session",
+            )
+
+        cleaned_commands, report = self.llm.clean_commands(commands, session_id)
+        return cleaned_commands, report
+
+    def get_essential_commands(self, session_id: UUID) -> list[str]:
+        """Get the essential commands needed to reproduce the session."""
+        cleaned_commands, _ = self.clean_commands(session_id)
+        return [cmd.command for cmd in cleaned_commands if not cmd.is_duplicate]

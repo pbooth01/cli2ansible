@@ -1,4 +1,5 @@
 """SQLAlchemy ORM models."""
+
 from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
@@ -18,14 +19,18 @@ class SessionORM(Base):
 
     __tablename__ = "sessions"
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid4())
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="created")
     created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(UTC))
     updated_at: Mapped[datetime] = mapped_column(
         default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
     )
-    session_metadata: Mapped[dict[str, Any]] = mapped_column("metadata", JSON, nullable=False, default=dict)
+    session_metadata: Mapped[dict[str, Any]] = mapped_column(
+        "metadata", JSON, nullable=False, default=dict
+    )
 
 
 class EventORM(Base):

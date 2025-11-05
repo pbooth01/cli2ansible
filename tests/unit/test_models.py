@@ -1,4 +1,5 @@
 """Unit tests for domain models."""
+
 from cli2ansible.domain.models import Session, SessionStatus, Task, TaskConfidence
 
 

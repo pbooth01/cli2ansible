@@ -10,7 +10,6 @@ from cli2ansible.domain.models import Role, Task, TaskConfidence
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
-
 def main() -> None:
     """Generate sample role."""
     # Create sample tasks

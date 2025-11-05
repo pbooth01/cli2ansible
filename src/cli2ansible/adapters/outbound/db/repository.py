@@ -1,4 +1,5 @@
 """SQLAlchemy repository implementation."""
+
 from uuid import UUID
 
 from cli2ansible.domain.models import Command, Event, SessionStatus
