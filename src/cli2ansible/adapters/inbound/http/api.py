@@ -77,7 +77,7 @@ def create_app(
             for e in events
         ]
         ingest_service.save_events(session_id, domain_events)
-        return {"status": "uploaded", "count": len(events)}
+        return {"status": "uploaded", "count": str(len(events))}
 
     @app.post("/sessions/{session_id}/compile", response_model=ArtifactResponse)
     async def compile_session(session_id: UUID, request: CompileRequest) -> Any:

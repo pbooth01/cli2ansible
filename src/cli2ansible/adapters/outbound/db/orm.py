@@ -1,5 +1,6 @@
 """SQLAlchemy ORM models."""
 from datetime import datetime
+from typing import Any
 from uuid import uuid4
 
 from sqlalchemy import JSON, Float, Integer, String, Text
@@ -22,7 +23,7 @@ class SessionORM(Base):
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="created")
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, onupdate=datetime.utcnow)
-    metadata: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    session_metadata: Mapped[dict[str, Any]] = mapped_column("metadata", JSON, nullable=False, default=dict)
 
 
 class EventORM(Base):
