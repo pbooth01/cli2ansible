@@ -6,6 +6,7 @@ from cli2ansible.domain.models import Session as DomainSession
 from cli2ansible.domain.ports import SessionRepositoryPort
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from .orm import Base, CommandORM, EventORM, SessionORM
 
@@ -14,7 +15,22 @@ class SQLAlchemyRepository(SessionRepositoryPort):
     """SQLAlchemy implementation of session repository."""
 
     def __init__(self, database_url: str) -> None:
-        self.engine = create_engine(database_url)
+        # For SQLite in-memory databases, use StaticPool to share the same connection
+        # across all sessions, allowing tables to persist
+        connect_args = {}
+        poolclass = None
+        if database_url.startswith("sqlite") and ":memory:" in database_url:
+            # Use shared cache for in-memory SQLite to allow connection sharing
+            if "cache=shared" not in database_url:
+                database_url = database_url.replace(":memory:", ":memory:?cache=shared")
+            connect_args = {"check_same_thread": False}
+            poolclass = StaticPool
+
+        self.engine = create_engine(
+            database_url,
+            connect_args=connect_args,
+            poolclass=poolclass,
+        )
         self.SessionLocal = sessionmaker(bind=self.engine, expire_on_commit=False)
 
     def create_tables(self) -> None:

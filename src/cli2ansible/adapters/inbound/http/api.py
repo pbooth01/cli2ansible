@@ -46,10 +46,7 @@ def create_app(
     @app.get("/sessions/{session_id}", response_model=SessionResponse)
     async def get_session(session_id: UUID) -> Any:
         """Get session by ID."""
-        from cli2ansible.app import get_repository
-
-        repo = get_repository()
-        session = repo.get(session_id)
+        session = ingest_service.repo.get(session_id)
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
         return SessionResponse(
@@ -92,10 +89,7 @@ def create_app(
         artifact_key = compile_service.export_artifact(role, session_id)
 
         # Generate download URL
-        from cli2ansible.app import get_object_store
-
-        store = get_object_store()
-        download_url = store.generate_url(artifact_key)
+        download_url = compile_service.store.generate_url(artifact_key)
 
         return ArtifactResponse(
             artifact_url=artifact_key,
@@ -105,10 +99,7 @@ def create_app(
     @app.get("/sessions/{session_id}/report", response_model=ReportResponse)
     async def get_report(session_id: UUID) -> Any:
         """Get translation report for a session."""
-        from cli2ansible.app import get_repository
-
-        repo = get_repository()
-        session = repo.get(session_id)
+        session = compile_service.repo.get(session_id)
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
 
@@ -129,12 +120,9 @@ def create_app(
     @app.get("/sessions/{session_id}/playbook")
     async def download_playbook(session_id: UUID) -> StreamingResponse:
         """Download generated playbook artifact."""
-        from cli2ansible.app import get_object_store
-
-        store = get_object_store()
         artifact_key = f"sessions/{session_id}/role.zip"
         try:
-            data = store.download(artifact_key)
+            data = compile_service.store.download(artifact_key)
             return StreamingResponse(
                 iter([data]),
                 media_type="application/zip",
