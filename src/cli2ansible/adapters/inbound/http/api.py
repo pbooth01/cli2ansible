@@ -3,17 +3,29 @@
 from typing import Any
 from uuid import UUID
 
-from cli2ansible.domain.services import CleanSession, CompilePlaybook, IngestSession
-from fastapi import FastAPI, HTTPException
+from cli2ansible.domain.services import (
+    CleanSession,
+    CompilePlaybook,
+    IngestSession,
+    VersionConflictError,
+)
+from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 
 from .schemas import (
     ArtifactResponse,
+    BatchEventUpdateRequest,
+    BatchEventUpdateResponse,
+    CastUploadResponse,
     CleanedCommandResponse,
     CleaningReportResponse,
     CleanSessionResponse,
     CompileRequest,
     EventCreate,
+    EventResponse,
+    EventsListResponse,
+    EventUpdateRequest,
+    EventUpdateResult,
     ReportResponse,
     SessionCreate,
     SessionResponse,
@@ -82,6 +94,168 @@ def create_app(
         ]
         ingest_service.save_events(session_id, domain_events)
         return {"status": "uploaded", "count": str(len(events))}
+
+    @app.post("/sessions/{session_id}/cast", response_model=CastUploadResponse)
+    async def upload_cast_file(session_id: UUID, file: UploadFile) -> Any:
+        """Upload a .cast file to a session."""
+        # Validate file
+        if not file.filename or not file.filename.endswith(".cast"):
+            raise HTTPException(
+                status_code=400, detail="File must have .cast extension"
+            )
+
+        # Read file data
+        file_data = await file.read()
+
+        # Validate size
+        if len(file_data) > 10 * 1024 * 1024:  # 10MB
+            raise HTTPException(
+                status_code=413,
+                detail=f"File size ({len(file_data)} bytes) exceeds maximum (10485760 bytes)",
+            )
+
+        try:
+            # Upload and parse
+            events = ingest_service.upload_cast_file(
+                session_id, file_data, file.filename
+            )
+
+            return CastUploadResponse(
+                status="parsed",
+                cast_file_key=f"sessions/{session_id}/recording.cast",
+                event_count=len(events),
+                events=[
+                    EventResponse(
+                        id=e.id,
+                        session_id=e.session_id,
+                        timestamp=e.timestamp,
+                        event_type=e.event_type,
+                        data=e.data,
+                        sequence=e.sequence,
+                        version=e.version,
+                    )
+                    for e in events
+                ],
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
+
+    @app.get("/sessions/{session_id}/events", response_model=EventsListResponse)
+    async def get_events(session_id: UUID) -> Any:
+        """Get all events for a session."""
+        session = ingest_service.repo.get(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        events = ingest_service.repo.get_events(session_id)
+
+        return EventsListResponse(
+            session_id=session_id,
+            event_count=len(events),
+            events=[
+                EventResponse(
+                    id=e.id,
+                    session_id=e.session_id,
+                    timestamp=e.timestamp,
+                    event_type=e.event_type,
+                    data=e.data,
+                    sequence=e.sequence,
+                    version=e.version,
+                )
+                for e in events
+            ],
+        )
+
+    @app.patch("/sessions/{session_id}/events", response_model=BatchEventUpdateResponse)
+    async def update_events_batch(
+        session_id: UUID, request: BatchEventUpdateRequest
+    ) -> Any:
+        """Update multiple events in a batch."""
+        session = ingest_service.repo.get(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        # Convert Pydantic models to dicts
+        updates = [update.dict() for update in request.updates]
+
+        # Process batch update
+        results = ingest_service.update_events_batch(session_id, updates)
+
+        # Count successes and failures
+        updated = sum(1 for r in results if r["status"] == "success")
+        failed = sum(1 for r in results if r["status"] == "error")
+
+        # Convert results to response format
+        formatted_results = []
+        for result in results:
+            if result["status"] == "success":
+                event = result["event"]
+                formatted_results.append(
+                    EventUpdateResult(
+                        id=result["id"],
+                        status="success",
+                        event=EventResponse(
+                            id=event.id,
+                            session_id=event.session_id,
+                            timestamp=event.timestamp,
+                            event_type=event.event_type,
+                            data=event.data,
+                            sequence=event.sequence,
+                            version=event.version,
+                        ),
+                    )
+                )
+            else:
+                formatted_results.append(
+                    EventUpdateResult(
+                        id=result["id"], status="error", error=result.get("error")
+                    )
+                )
+
+        # Return 207 if partial success, 200 if all succeeded
+        response = BatchEventUpdateResponse(
+            updated=updated, failed=failed, results=formatted_results
+        )
+
+        return response
+
+    @app.patch("/sessions/{session_id}/events/{event_id}", response_model=EventResponse)
+    async def update_single_event(
+        session_id: UUID, event_id: UUID, request: EventUpdateRequest
+    ) -> Any:
+        """Update a single event."""
+        session = ingest_service.repo.get(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        try:
+            # Build updates dict
+            updates: dict[str, Any] = {}
+            if request.timestamp is not None:
+                updates["timestamp"] = request.timestamp
+            if request.data is not None:
+                updates["data"] = request.data
+            if request.event_type is not None:
+                updates["event_type"] = request.event_type
+
+            # Update event
+            updated_event = ingest_service.update_event(
+                session_id, event_id, updates, request.version
+            )
+
+            return EventResponse(
+                id=updated_event.id,
+                session_id=updated_event.session_id,
+                timestamp=updated_event.timestamp,
+                event_type=updated_event.event_type,
+                data=updated_event.data,
+                sequence=updated_event.sequence,
+                version=updated_event.version,
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e)) from e
+        except VersionConflictError as e:
+            raise HTTPException(status_code=409, detail=str(e)) from e
 
     @app.post("/sessions/{session_id}/compile", response_model=ArtifactResponse)
     async def compile_session(session_id: UUID, request: CompileRequest) -> Any:
