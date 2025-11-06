@@ -20,12 +20,15 @@ COPY pyproject.toml poetry.lock* ./
 RUN poetry config virtualenvs.create false
 
 # Install dependencies (including ansible tools for Linux)
-RUN poetry install --only main --with ansible --no-interaction --no-ansi
+RUN poetry install --only main --no-root --no-interaction --no-ansi
 
 # Copy application code
 COPY src/ ./src/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
+
+# Add src to Python path
+ENV PYTHONPATH=/app/src:$PYTHONPATH
 
 # Create artifacts directory
 RUN mkdir -p /app/artifacts
@@ -36,4 +39,4 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["uvicorn", "cli2ansible.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "cli2ansible.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
