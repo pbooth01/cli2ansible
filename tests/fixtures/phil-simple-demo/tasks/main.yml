@@ -1,0 +1,13 @@
+- name: 'Run: echo "Hello Phillip"'
+  shell:
+    cmd: echo "Hello Phillip"
+- name: 'Create directory: test_1'
+  file:
+    path: test_1
+    state: directory
+- name: 'Run: cd test_1'
+  shell:
+    cmd: cd test_1
+- name: 'Run: exit'
+  shell:
+    cmd: exit
