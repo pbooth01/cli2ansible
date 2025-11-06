@@ -1,4 +1,4 @@
-"""API endpoint tests."""
+"""Shared test fixtures for API tests."""
 
 import pytest
 from cli2ansible.adapters.inbound.http.api import create_app
@@ -48,50 +48,3 @@ def client() -> TestClient:
 
     app = create_app(ingest, compile_svc)
     return TestClient(app)
-
-
-def test_root_endpoint(client: TestClient) -> None:
-    """Test root endpoint."""
-    response = client.get("/")
-    assert response.status_code == 200
-    assert response.json()["status"] == "ok"
-
-
-def test_create_session(client: TestClient) -> None:
-    """Test session creation."""
-    response = client.post("/sessions", json={"name": "test-session", "metadata": {}})
-    assert response.status_code == 200
-    data = response.json()
-    assert data["name"] == "test-session"
-    assert "id" in data
-
-
-def test_get_session(client: TestClient) -> None:
-    """Test getting a session."""
-    # Create session
-    create_resp = client.post(
-        "/sessions", json={"name": "test-session", "metadata": {}}
-    )
-    session_id = create_resp.json()["id"]
-
-    # Get session
-    response = client.get(f"/sessions/{session_id}")
-    assert response.status_code == 200
-    assert response.json()["id"] == session_id
-
-
-def test_upload_events(client: TestClient) -> None:
-    """Test uploading events."""
-    # Create session
-    create_resp = client.post(
-        "/sessions", json={"name": "test-session", "metadata": {}}
-    )
-    session_id = create_resp.json()["id"]
-
-    # Upload events
-    events = [
-        {"timestamp": 1.0, "event_type": "o", "data": "echo hello\n", "sequence": 0}
-    ]
-    response = client.post(f"/sessions/{session_id}/events", json=events)
-    assert response.status_code == 200
-    assert response.json()["status"] == "uploaded"
