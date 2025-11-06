@@ -8,16 +8,16 @@ from cli2ansible.domain.models import Event
 from cli2ansible.domain.ports import CapturePort
 
 # ANSI escape sequence pattern
-ANSI_RE = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]|\x1B\][^\x07]*\x07|\x1B[\(\)][A-Za-z]')
+ANSI_RE = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]|\x1B\][^\x07]*\x07|\x1B[\(\)][A-Za-z]")
 
 # OSC sequence pattern to extract window title (command)
 # Format: ESC ] 2 ; command BEL
-OSC_TITLE_RE = re.compile(r'\x1B\]2;([^\x07]+)\x07')
+OSC_TITLE_RE = re.compile(r"\x1B\]2;([^\x07]+)\x07")
 
 
 def strip_ansi(s: str) -> str:
     """Remove ANSI escape sequences from string."""
-    return ANSI_RE.sub('', s)
+    return ANSI_RE.sub("", s)
 
 
 def extract_command_from_osc(s: str) -> str | None:
@@ -46,7 +46,9 @@ def apply_edit(buf: str, ch: str) -> str:
 class AsciinemaParser(CapturePort):
     """Parse asciinema .cast files into Event objects."""
 
-    def parse_events(self, recording_data: bytes, max_events: int = 100_000) -> list[Event]:
+    def parse_events(
+        self, recording_data: bytes, max_events: int = 100_000
+    ) -> list[Event]:
         """
         Parse asciinema .cast file format into Event objects.
 
@@ -142,20 +144,30 @@ class AsciinemaParser(CapturePort):
             kind = event_data[1]
             data = event_data[2]
 
-            if not isinstance(t, int | float) or not isinstance(kind, str) or not isinstance(data, str):
+            if (
+                not isinstance(t, int | float)
+                or not isinstance(kind, str)
+                or not isinstance(data, str)
+            ):
                 continue
 
             # Extract commands from OSC window title sequences in output
             if kind == "o":
                 cmd = extract_command_from_osc(data)
-                if cmd and cmd not in ("cd", "pbooth@USMBP16PBOOTH:~/personal-projects/scratch", "pbooth@USMBP16PBOOTH:~/personal-projects/scratch/test_1"):
+                if cmd and cmd not in (
+                    "cd",
+                    "pbooth@USMBP16PBOOTH:~/personal-projects/scratch",
+                    "pbooth@USMBP16PBOOTH:~/personal-projects/scratch/test_1",
+                ):
                     # Look backwards to find the most recent Enter keypress
                     enter_time = t
                     for j in range(i - 1, -1, -1):
                         prev_event = all_events[j]
-                        if (len(prev_event) >= 3 and
-                            prev_event[1] == "i" and
-                            prev_event[2] == "\r"):
+                        if (
+                            len(prev_event) >= 3
+                            and prev_event[1] == "i"
+                            and prev_event[2] == "\r"
+                        ):
                             enter_time = prev_event[0]
                             break
 

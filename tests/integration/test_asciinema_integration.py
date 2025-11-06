@@ -20,11 +20,19 @@ class TestAsciinemaIntegration:
 
         # Assert - verify structure
         assert len(events) > 0, "Should parse at least one event"
-        assert all(hasattr(e, "session_id") for e in events), "All events should have session_id"
-        assert all(hasattr(e, "timestamp") for e in events), "All events should have timestamp"
-        assert all(hasattr(e, "event_type") for e in events), "All events should have event_type"
+        assert all(
+            hasattr(e, "session_id") for e in events
+        ), "All events should have session_id"
+        assert all(
+            hasattr(e, "timestamp") for e in events
+        ), "All events should have timestamp"
+        assert all(
+            hasattr(e, "event_type") for e in events
+        ), "All events should have event_type"
         assert all(hasattr(e, "data") for e in events), "All events should have data"
-        assert all(hasattr(e, "sequence") for e in events), "All events should have sequence"
+        assert all(
+            hasattr(e, "sequence") for e in events
+        ), "All events should have sequence"
 
         # Verify all events share same session_id
         session_ids = {e.session_id for e in events}
@@ -37,7 +45,9 @@ class TestAsciinemaIntegration:
 
         # Verify event types - new parser only returns "o" (output) events with commands
         event_types = {e.event_type for e in events}
-        assert event_types == {"o"}, "Parser should only return output events with commands"
+        assert event_types == {
+            "o"
+        }, "Parser should only return output events with commands"
 
     def test_parse_demo_cast_with_session_override(self) -> None:
         """Test parsing demo.cast with custom session_id."""
@@ -62,13 +72,15 @@ class TestAsciinemaIntegration:
 
         # Assert - new parser extracts commands from OSC sequences
         # All events should be output events containing commands
-        assert all(e.event_type == "o" for e in events), "All events should be output events"
+        assert all(
+            e.event_type == "o" for e in events
+        ), "All events should be output events"
         assert len(events) > 0, "Should have parsed commands"
 
         # Verify we got the expected commands from demo.cast
         commands = [e.data for e in events]
         assert "mkdir test_1" in commands, "Should have mkdir command"
-        assert "echo \"Hello Phillip\"" in commands, "Should have echo command"
+        assert 'echo "Hello Phillip"' in commands, "Should have echo command"
         assert "exit" in commands, "Should have exit command"
 
     def test_parse_demo_cast_commands(self) -> None:
@@ -126,5 +138,7 @@ class TestAsciinemaIntegration:
         events = parse_cast_file(str(fixture_path))
 
         # Assert
-        assert all(isinstance(e.data, str) for e in events), "All data should be strings"
+        assert all(
+            isinstance(e.data, str) for e in events
+        ), "All data should be strings"
         assert all(len(e.data) > 0 for e in events), "All commands should be non-empty"

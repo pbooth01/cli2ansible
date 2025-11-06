@@ -32,28 +32,28 @@ def test_extract_commands_with_newlines(ingest_service, repo):
             timestamp=0.001,
             event_type="o",
             data="mkdir test_1\n",
-            sequence=0
+            sequence=0,
         ),
         Event(
             session_id=session.id,
             timestamp=0.002,
             event_type="o",
             data="cd test_1\n",
-            sequence=1
+            sequence=1,
         ),
         Event(
             session_id=session.id,
             timestamp=0.003,
             event_type="o",
             data='echo "Hello Phillip"\n',
-            sequence=2
+            sequence=2,
         ),
         Event(
             session_id=session.id,
             timestamp=0.004,
             event_type="o",
             data="exit\n",
-            sequence=3
+            sequence=3,
         ),
     ]
 
@@ -81,28 +81,28 @@ def test_extract_commands_without_newlines(ingest_service, repo):
             timestamp=0.001,
             event_type="o",
             data="mkdir test_1",
-            sequence=0
+            sequence=0,
         ),
         Event(
             session_id=session.id,
             timestamp=0.001,
             event_type="o",
             data="cd test_1",
-            sequence=1
+            sequence=1,
         ),
         Event(
             session_id=session.id,
             timestamp=0.0,
             event_type="o",
             data='echo "Hello Phillip"',
-            sequence=2
+            sequence=2,
         ),
         Event(
             session_id=session.id,
             timestamp=0.001,
             event_type="o",
             data="exit",
-            sequence=3
+            sequence=3,
         ),
     ]
 
