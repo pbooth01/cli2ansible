@@ -1,6 +1,7 @@
 """Application composition root."""
 
 from cli2ansible.adapters.inbound.http.api import create_app
+from cli2ansible.adapters.outbound.capture.asciinema_parser import AsciinemaParser
 from cli2ansible.adapters.outbound.db.repository import SQLAlchemyRepository
 from cli2ansible.adapters.outbound.generators.ansible_role import AnsibleRoleGenerator
 from cli2ansible.adapters.outbound.llm.anthropic_cleaner import AnthropicCleaner
@@ -67,8 +68,9 @@ def create_services() -> tuple[IngestSession, CompilePlaybook, CleanSession | No
     store = get_object_store()
     translator = RulesEngine()
     generator = AnsibleRoleGenerator()
+    parser = AsciinemaParser()
 
-    ingest_service = IngestSession(repo)
+    ingest_service = IngestSession(repo, parser, store)
     compile_service = CompilePlaybook(repo, translator, generator, store)
 
     # Only create clean service if LLM is configured

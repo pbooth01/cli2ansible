@@ -29,6 +29,13 @@ agents:
     tags: [documentation, api, architecture]
     inputs: [scope, existing_docs]
 
+  - id: prd-agent
+    name: PRDAgent
+    description: Analyzes feature requests and generates comprehensive Product Requirements Documents
+    path: prompts/agents/prd-agent.yaml
+    tags: [planning, product, requirements]
+    inputs: [feature_request, codebase_context]
+
 snippets:
   - id: unit-test-harness
     name: Unit Test Harness
