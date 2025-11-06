@@ -79,11 +79,13 @@ class SQLAlchemyRepository(SessionRepositoryPort):
         with self.SessionLocal() as db:
             orm_events = [
                 EventORM(
+                    id=str(event.id),
                     session_id=str(event.session_id),
                     timestamp=event.timestamp,
                     event_type=event.event_type,
                     data=event.data,
                     sequence=event.sequence,
+                    version=event.version,
                 )
                 for event in events
             ]
@@ -143,14 +145,40 @@ class SQLAlchemyRepository(SessionRepositoryPort):
             metadata=orm_session.session_metadata,
         )
 
+    def get_event_by_id(self, event_id: UUID) -> Event | None:
+        """Retrieve a single event by ID."""
+        with self.SessionLocal() as db:
+            stmt = select(EventORM).where(EventORM.id == str(event_id))
+            orm_event = db.scalar(stmt)
+            return self._event_to_domain(orm_event) if orm_event else None
+
+    def update_event(self, event: Event) -> Event:
+        """Update an event (increments version)."""
+        with self.SessionLocal() as db:
+            stmt = select(EventORM).where(EventORM.id == str(event.id))
+            orm_event = db.scalar(stmt)
+            if not orm_event:
+                raise ValueError(f"Event {event.id} not found")
+
+            orm_event.timestamp = event.timestamp
+            orm_event.event_type = event.event_type
+            orm_event.data = event.data
+            orm_event.sequence = event.sequence
+            orm_event.version = event.version
+            db.commit()
+            db.refresh(orm_event)
+            return self._event_to_domain(orm_event)
+
     def _event_to_domain(self, orm_event: EventORM) -> Event:
         """Convert ORM event to domain model."""
         return Event(
+            id=UUID(orm_event.id),
             session_id=UUID(orm_event.session_id),
             timestamp=orm_event.timestamp,
             event_type=orm_event.event_type,
             data=orm_event.data,
             sequence=orm_event.sequence,
+            version=orm_event.version,
         )
 
     def _command_to_domain(self, orm_cmd: CommandORM) -> Command:

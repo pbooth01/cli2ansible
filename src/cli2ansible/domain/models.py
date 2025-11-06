@@ -47,6 +47,8 @@ class Event:
     event_type: str
     data: str
     sequence: int = 0
+    id: UUID = field(default_factory=uuid4)
+    version: int = 1
 
 
 @dataclass

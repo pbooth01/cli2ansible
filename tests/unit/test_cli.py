@@ -188,8 +188,9 @@ class TestCLIMain:
         try:
             # Act
             captured_output = StringIO()
-            with patch("sys.argv", ["cli2ansible", "convert-cast", temp_path]), \
-                 patch("sys.stdout", captured_output):
+            with patch("sys.argv", ["cli2ansible", "convert-cast", temp_path]), patch(
+                "sys.stdout", captured_output
+            ):
                 main()
 
             # Assert
@@ -218,7 +219,10 @@ class TestCLIMain:
 
         try:
             # Act
-            with patch("sys.argv", ["cli2ansible", "convert-cast", cast_path, "-o", output_path]):
+            with patch(
+                "sys.argv",
+                ["cli2ansible", "convert-cast", cast_path, "-o", output_path],
+            ):
                 main()
 
             # Assert
@@ -238,9 +242,9 @@ class TestCLIMain:
 
         # Act & Assert
         captured_stderr = StringIO()
-        with patch("sys.argv", ["cli2ansible", "convert-cast", nonexistent_path]), \
-             patch("sys.stderr", captured_stderr), \
-             pytest.raises(SystemExit) as exc_info:
+        with patch(
+            "sys.argv", ["cli2ansible", "convert-cast", nonexistent_path]
+        ), patch("sys.stderr", captured_stderr), pytest.raises(SystemExit) as exc_info:
             main()
 
         assert exc_info.value.code == 1
@@ -258,9 +262,9 @@ class TestCLIMain:
         try:
             # Act & Assert
             captured_stderr = StringIO()
-            with patch("sys.argv", ["cli2ansible", "convert-cast", temp_path]), \
-                 patch("sys.stderr", captured_stderr), \
-                 pytest.raises(SystemExit) as exc_info:
+            with patch("sys.argv", ["cli2ansible", "convert-cast", temp_path]), patch(
+                "sys.stderr", captured_stderr
+            ), pytest.raises(SystemExit) as exc_info:
                 main()
 
             assert exc_info.value.code == 1
@@ -272,15 +276,15 @@ class TestCLIMain:
     def test_cli_main_no_command(self) -> None:
         """Test CLI without command shows help and exits."""
         # Act & Assert
-        with patch("sys.argv", ["cli2ansible"]), \
-             pytest.raises(SystemExit):
+        with patch("sys.argv", ["cli2ansible"]), pytest.raises(SystemExit):
             main()
 
     def test_cli_main_help(self) -> None:
         """Test CLI with --help shows usage."""
         # Act & Assert
-        with patch("sys.argv", ["cli2ansible", "convert-cast", "--help"]), \
-             pytest.raises(SystemExit) as exc_info:
+        with patch(
+            "sys.argv", ["cli2ansible", "convert-cast", "--help"]
+        ), pytest.raises(SystemExit) as exc_info:
             main()
 
         # Help should exit with code 0
@@ -300,7 +304,10 @@ class TestCLIMain:
 
         try:
             # Act
-            with patch("sys.argv", ["cli2ansible", "convert-cast", cast_path, "--output", output_path]):
+            with patch(
+                "sys.argv",
+                ["cli2ansible", "convert-cast", cast_path, "--output", output_path],
+            ):
                 main()
 
             # Assert
@@ -320,10 +327,12 @@ class TestCLIMain:
         try:
             # Act & Assert
             captured_stderr = StringIO()
-            with patch("sys.argv", ["cli2ansible", "convert-cast", temp_path]), \
-                 patch("cli2ansible.cli.parse_cast_file", side_effect=RuntimeError("Unexpected error")), \
-                 patch("sys.stderr", captured_stderr), \
-                 pytest.raises(SystemExit) as exc_info:
+            with patch("sys.argv", ["cli2ansible", "convert-cast", temp_path]), patch(
+                "cli2ansible.cli.parse_cast_file",
+                side_effect=RuntimeError("Unexpected error"),
+            ), patch("sys.stderr", captured_stderr), pytest.raises(
+                SystemExit
+            ) as exc_info:
                 main()
 
             assert exc_info.value.code == 1

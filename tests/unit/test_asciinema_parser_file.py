@@ -113,7 +113,9 @@ class TestParseCastFile:
             '[0.5,"o","\\u001b]2;echo hello 世界\\u0007"]\n'
         )
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".cast", delete=False, encoding="utf-8") as f:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".cast", delete=False, encoding="utf-8"
+        ) as f:
             f.write(cast_content)
             temp_path = f.name
 

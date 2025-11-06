@@ -2,7 +2,7 @@
 
 import re
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from cli2ansible.domain.models import (
     CleanedCommand,
@@ -17,6 +17,7 @@ from cli2ansible.domain.models import (
     TaskConfidence,
 )
 from cli2ansible.domain.ports import (
+    CapturePort,
     LLMPort,
     ObjectStorePort,
     RoleGeneratorPort,
@@ -25,11 +26,24 @@ from cli2ansible.domain.ports import (
 )
 
 
+class VersionConflictError(Exception):
+    """Raised when an event update has a version conflict."""
+
+    pass
+
+
 class IngestSession:
     """Service for ingesting terminal sessions."""
 
-    def __init__(self, repo: SessionRepositoryPort) -> None:
+    def __init__(
+        self,
+        repo: SessionRepositoryPort,
+        parser: CapturePort | None = None,
+        store: ObjectStorePort | None = None,
+    ) -> None:
         self.repo = repo
+        self.parser = parser
+        self.store = store
 
     def create_session(
         self, name: str, metadata: dict[str, Any] | None = None
@@ -111,6 +125,171 @@ class IngestSession:
             sudo=sudo,
             timestamp=timestamp,
         )
+
+    def upload_cast_file(
+        self, session_id: UUID, file_data: bytes, filename: str
+    ) -> list[Event]:
+        """
+        Upload .cast file, store in MinIO, parse, and save events.
+
+        Returns parsed events with IDs and versions.
+
+        Raises:
+            ValueError: If session not found or file invalid
+        """
+        if not self.parser:
+            raise ValueError("Parser not configured")
+        if not self.store:
+            raise ValueError("Object store not configured")
+
+        # 1. Validate session exists
+        session = self.repo.get(session_id)
+        if not session:
+            raise ValueError(f"Session {session_id} not found")
+
+        # 2. Validate file size
+        if len(file_data) > 10 * 1024 * 1024:  # 10MB
+            raise ValueError("File size exceeds maximum (10MB)")
+
+        # 3. Parse file to validate format
+        try:
+            events = self.parser.parse_events(file_data)
+        except Exception as e:
+            raise ValueError(f"Invalid .cast file format: {e}") from e
+
+        # 4. Store file in MinIO
+        key = f"sessions/{session_id}/recording.cast"
+        self.store.upload(key, file_data, "application/json")
+
+        # 5. Assign event IDs and versions
+        for event in events:
+            event.id = uuid4()
+            event.session_id = session_id
+            event.version = 1
+
+        # 6. Save events to database
+        self.repo.save_events(events)
+
+        # 7. Update session metadata and status
+        session.metadata["cast_file_key"] = key
+        session.metadata["cast_filename"] = filename
+        session.status = SessionStatus.UPLOADED
+        self.repo.update(session)
+
+        return events
+
+    def update_events_batch(
+        self, session_id: UUID, updates: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """
+        Update multiple events in a batch with partial success support.
+
+        Returns list of results with status for each update.
+        Each result: {"id": UUID, "status": "success"|"error", "event": Event | None, "error": str | None}
+
+        Note: Uses individual transactions per event to enable partial success.
+        """
+        results = []
+
+        for update_spec in updates:
+            event_id = UUID(update_spec["id"])
+            expected_version = update_spec["version"]
+
+            try:
+                event = self.repo.get_event_by_id(event_id)
+                if not event:
+                    results.append(
+                        {
+                            "id": str(event_id),
+                            "status": "error",
+                            "error": f"Event {event_id} not found",
+                        }
+                    )
+                    continue
+
+                if event.session_id != session_id:
+                    results.append(
+                        {
+                            "id": str(event_id),
+                            "status": "error",
+                            "error": "Event does not belong to this session",
+                        }
+                    )
+                    continue
+
+                if event.version != expected_version:
+                    results.append(
+                        {
+                            "id": str(event_id),
+                            "status": "error",
+                            "error": f"Version conflict: expected {expected_version}, current is {event.version}",
+                        }
+                    )
+                    continue
+
+                # Apply updates
+                for key, value in update_spec.items():
+                    if key in ("timestamp", "data", "event_type"):
+                        setattr(event, key, value)
+
+                # Increment version
+                event.version += 1
+
+                # Save
+                updated_event = self.repo.update_event(event)
+
+                results.append(
+                    {
+                        "id": str(event_id),
+                        "status": "success",
+                        "event": updated_event,  # type: ignore[dict-item]
+                    }
+                )
+
+            except Exception as e:
+                results.append(
+                    {"id": str(event_id), "status": "error", "error": str(e)}
+                )
+
+        return results
+
+    def update_event(
+        self,
+        session_id: UUID,
+        event_id: UUID,
+        updates: dict[str, Any],
+        expected_version: int,
+    ) -> Event:
+        """
+        Update a single event with optimistic locking (convenience method).
+
+        Raises:
+            ValueError: If event not found
+            VersionConflictError: If version mismatch
+        """
+        event = self.repo.get_event_by_id(event_id)
+        if not event:
+            raise ValueError(f"Event {event_id} not found")
+
+        if event.session_id != session_id:
+            raise ValueError("Event does not belong to this session")
+
+        if event.version != expected_version:
+            raise VersionConflictError(
+                f"Version conflict: expected {expected_version}, "
+                f"current is {event.version}"
+            )
+
+        # Apply updates
+        for key, value in updates.items():
+            if key in ("timestamp", "data", "event_type"):
+                setattr(event, key, value)
+
+        # Increment version
+        event.version += 1
+
+        # Save
+        return self.repo.update_event(event)
 
 
 class CompilePlaybook:

@@ -79,6 +79,16 @@ class SessionRepositoryPort(ABC):
         """Get all commands for a session."""
         ...
 
+    @abstractmethod
+    def get_event_by_id(self, event_id: UUID) -> Event | None:
+        """Retrieve a single event by ID."""
+        ...
+
+    @abstractmethod
+    def update_event(self, event: Event) -> Event:
+        """Update an event (increments version)."""
+        ...
+
 
 class ObjectStorePort(ABC):
     """Port for artifact storage."""
