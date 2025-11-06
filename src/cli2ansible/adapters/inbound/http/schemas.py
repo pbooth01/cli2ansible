@@ -1,10 +1,10 @@
 """Pydantic schemas for API."""
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 
 class SessionCreate(BaseModel):
@@ -88,3 +88,90 @@ class CleanSessionResponse(BaseModel):
 
     cleaned_commands: list[CleanedCommandResponse]
     report: CleaningReportResponse
+
+
+class EventResponse(BaseModel):
+    """Response schema for event with ID and version."""
+
+    id: UUID
+    session_id: UUID
+    timestamp: float
+    event_type: str
+    data: str
+    sequence: int
+    version: int
+
+
+class CastUploadResponse(BaseModel):
+    """Response schema for cast file upload."""
+
+    status: str
+    cast_file_key: str
+    event_count: int
+    events: list[EventResponse]
+
+
+class EventsListResponse(BaseModel):
+    """Response schema for list of events."""
+
+    session_id: UUID
+    event_count: int
+    events: list[EventResponse]
+
+
+class EventUpdateRequest(BaseModel):
+    """Request schema for updating a single event."""
+
+    version: int = Field(..., description="Current version for optimistic locking")
+    timestamp: float | None = None
+    data: str | None = None
+    event_type: str | None = None
+
+    @validator("event_type")
+    def validate_event_type(cls: type, v: str | None) -> str | None:  # noqa: N805
+        """Validate event type."""
+        if v and v not in ("i", "o", "x"):
+            raise ValueError("event_type must be 'i', 'o', or 'x'")
+        return v
+
+
+class BatchEventUpdate(BaseModel):
+    """Single event update in a batch request."""
+
+    id: UUID = Field(..., description="Event ID to update")
+    version: int = Field(..., description="Current version for optimistic locking")
+    timestamp: float | None = None
+    data: str | None = None
+    event_type: str | None = None
+
+    @validator("event_type")
+    def validate_event_type(cls: type, v: str | None) -> str | None:  # noqa: N805
+        """Validate event type."""
+        if v and v not in ("i", "o", "x"):
+            raise ValueError("event_type must be 'i', 'o', or 'x'")
+        return v
+
+
+class BatchEventUpdateRequest(BaseModel):
+    """Request schema for batch event updates."""
+
+    updates: list[BatchEventUpdate] = Field(
+        ..., description="List of event updates", min_length=1
+    )
+
+
+class EventUpdateResult(BaseModel):
+    """Result of a single event update in batch."""
+
+    id: str
+    status: Literal["success", "error"]
+    event: EventResponse | None = None
+    error: str | None = None
+
+
+class BatchEventUpdateResponse(BaseModel):
+    """Response schema for batch event updates."""
+
+    updated: int = Field(..., description="Number of successfully updated events")
+    failed: int = Field(..., description="Number of failed updates")
+    results: list[EventUpdateResult]

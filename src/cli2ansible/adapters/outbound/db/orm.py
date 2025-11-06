@@ -38,12 +38,15 @@ class EventORM(Base):
 
     __tablename__ = "events"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid4())
+    )
     session_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
     timestamp: Mapped[float] = mapped_column(Float, nullable=False)
     event_type: Mapped[str] = mapped_column(String(10), nullable=False)
     data: Mapped[str] = mapped_column(Text, nullable=False)
     sequence: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
 
 class CommandORM(Base):
