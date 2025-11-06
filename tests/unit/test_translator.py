@@ -61,7 +61,7 @@ def test_mkdir_translation(translator: RulesEngine) -> None:
     assert task.module == "file"
     assert task.args["path"] == "/var/www/html"
     assert task.args["state"] == "directory"
-    assert task.creates == "/var/www/html"
+    assert task.confidence == TaskConfidence.HIGH
 
 
 def test_git_clone_translation(translator: RulesEngine) -> None:

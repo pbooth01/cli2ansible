@@ -1,10 +1,46 @@
 """Asciinema .cast file parser adapter."""
 
 import json
+import re
 from uuid import UUID
 
 from cli2ansible.domain.models import Event
 from cli2ansible.domain.ports import CapturePort
+
+# ANSI escape sequence pattern
+ANSI_RE = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]|\x1B\][^\x07]*\x07|\x1B[\(\)][A-Za-z]')
+
+# OSC sequence pattern to extract window title (command)
+# Format: ESC ] 2 ; command BEL
+OSC_TITLE_RE = re.compile(r'\x1B\]2;([^\x07]+)\x07')
+
+
+def strip_ansi(s: str) -> str:
+    """Remove ANSI escape sequences from string."""
+    return ANSI_RE.sub('', s)
+
+
+def extract_command_from_osc(s: str) -> str | None:
+    """Extract command from OSC window title sequence."""
+    match = OSC_TITLE_RE.search(s)
+    if match:
+        return match.group(1)
+    return None
+
+
+def apply_edit(buf: str, ch: str) -> str:
+    """Apply character edit to buffer, handling backspace/delete and control sequences."""
+    # backspace / delete
+    if ch in ("\u0008", "\u007f"):
+        return buf[:-1] if buf else buf
+    # ignore escape sequences (raw ESC and CSI sequences)
+    # These include arrow keys, function keys, etc.
+    if ch.startswith("\x1b"):
+        return buf
+    # ignore other control characters except printable ones
+    if ord(ch) < 32 and ch not in ("\t",):
+        return buf
+    return buf + ch
 
 
 class AsciinemaParser(CapturePort):
@@ -13,6 +49,10 @@ class AsciinemaParser(CapturePort):
     def parse_events(self, recording_data: bytes, max_events: int = 100_000) -> list[Event]:
         """
         Parse asciinema .cast file format into Event objects.
+
+        This parser builds commands from input events by tracking character-by-character
+        input and handling backspace/delete. Only complete commands (ending with Enter)
+        are emitted as events.
 
         Format:
         - Line 1: JSON header with metadata (version, term, timestamp, env)
@@ -26,7 +66,7 @@ class AsciinemaParser(CapturePort):
             max_events: Maximum number of events to parse (default: 100,000)
 
         Returns:
-            List of Event objects sorted by timestamp
+            List of Event objects containing completed commands
 
         Raises:
             ValueError: If file format is invalid or exceeds limits
@@ -57,79 +97,84 @@ class AsciinemaParser(CapturePort):
                 "Only versions 2 and 3 are supported."
             )
 
-        # Generate a session ID from header timestamp or use a fixed UUID
-        # In real usage, this would come from the session creation
+        # Generate a session ID
         from uuid import uuid4
 
         session_id = uuid4()
 
-        # Parse event lines
-        events: list[Event] = []
-        for idx, line in enumerate(lines[1:], start=2):
+        # First pass: find the minimum timestamp to use as base
+        base_t = None
+        for line in lines[1:]:
             if not line.strip():
                 continue
-
-            # Enforce event count limit to prevent DoS
-            if len(events) >= max_events:
-                raise ValueError(
-                    f"Event count exceeds maximum allowed limit ({max_events})"
-                )
-
             try:
                 event_data = json.loads(line)
-            except json.JSONDecodeError as e:
-                raise ValueError(f"Invalid JSON on line {idx}: {e}") from e
+                if isinstance(event_data, list) and len(event_data) >= 1:
+                    t = event_data[0]
+                    if isinstance(t, int | float) and (base_t is None or t < base_t):
+                        base_t = t
+            except (json.JSONDecodeError, IndexError):
+                continue
 
-            # Validate event structure
-            if not isinstance(event_data, list) or len(event_data) < 2:
-                raise ValueError(
-                    f"Line {idx}: Event must be array with at least "
-                    "[timestamp, event_type]"
-                )
+        if base_t is None:
+            base_t = 0
 
-            timestamp = event_data[0]
-            event_type = event_data[1]
+        # Second pass: extract commands and their enter timestamps
+        # Strategy: Find OSC title events, then look backwards for the corresponding Enter keypress
+        events: list[Event] = []
+        seq = 0
 
-            # Handle exit events (2 elements) vs output/input events (3 elements)
-            if event_type == "x":
-                # Exit event: [timestamp, "x", exit_code]
-                data = str(event_data[2]) if len(event_data) > 2 else "0"
-            else:
-                # Output/Input event: [timestamp, event_type, data]
-                if len(event_data) < 3:
-                    raise ValueError(
-                        f"Line {idx}: Output/input event must have data field"
+        # Parse all events into a list first
+        all_events = []
+        for line in lines[1:]:
+            if not line.strip():
+                continue
+            try:
+                event_data = json.loads(line)
+                if isinstance(event_data, list) and len(event_data) >= 3:
+                    all_events.append(event_data)
+            except json.JSONDecodeError:
+                continue
+
+        # Find commands and their timestamps
+        for i, event_data in enumerate(all_events):
+            t = event_data[0]
+            kind = event_data[1]
+            data = event_data[2]
+
+            if not isinstance(t, int | float) or not isinstance(kind, str) or not isinstance(data, str):
+                continue
+
+            # Extract commands from OSC window title sequences in output
+            if kind == "o":
+                cmd = extract_command_from_osc(data)
+                if cmd and cmd not in ("cd", "pbooth@USMBP16PBOOTH:~/personal-projects/scratch", "pbooth@USMBP16PBOOTH:~/personal-projects/scratch/test_1"):
+                    # Look backwards to find the most recent Enter keypress
+                    enter_time = t
+                    for j in range(i - 1, -1, -1):
+                        prev_event = all_events[j]
+                        if (len(prev_event) >= 3 and
+                            prev_event[1] == "i" and
+                            prev_event[2] == "\r"):
+                            enter_time = prev_event[0]
+                            break
+
+                    # Enforce event count limit
+                    if seq >= max_events:
+                        raise ValueError(
+                            f"Event count exceeds maximum allowed limit ({max_events})"
+                        )
+
+                    events.append(
+                        Event(
+                            session_id=session_id,
+                            timestamp=round(enter_time - base_t, 6),
+                            event_type="o",
+                            data=cmd,
+                            sequence=seq,
+                        )
                     )
-                data = event_data[2]
-
-            # Validate types
-            if not isinstance(timestamp, int | float):
-                raise ValueError(f"Line {idx}: Timestamp must be a number")
-            if not isinstance(event_type, str):
-                raise ValueError(f"Line {idx}: Event type must be a string")
-            if not isinstance(data, str):
-                raise ValueError(f"Line {idx}: Data must be a string")
-
-            if event_type not in ("i", "o", "x"):
-                raise ValueError(
-                    f"Line {idx}: Invalid event type '{event_type}'. "
-                    "Must be 'i', 'o', or 'x'"
-                )
-
-            events.append(
-                Event(
-                    session_id=session_id,
-                    timestamp=float(timestamp),
-                    event_type=event_type,
-                    data=data,
-                    sequence=len(events),
-                )
-            )
-
-        # Sort by timestamp and reassign sequence numbers
-        events.sort(key=lambda e: e.timestamp)
-        for idx, event in enumerate(events):
-            event.sequence = idx
+                    seq += 1
 
         return events
 

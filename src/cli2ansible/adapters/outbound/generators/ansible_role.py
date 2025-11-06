@@ -54,10 +54,12 @@ class AnsibleRoleGenerator(RoleGeneratorPort):
                 task_dict["become"] = True
             if task.changed_when:
                 task_dict["changed_when"] = task.changed_when
-            if task.creates:
-                task_dict["args"] = {**task.args, "creates": task.creates}
-            if task.removes:
-                task_dict["args"] = {**task.args, "removes": task.removes}
+            # Only add creates/removes for shell/command modules
+            if task.module in ["shell", "command"]:
+                if task.creates:
+                    task_dict["args"] = {**task.args, "creates": task.creates}
+                if task.removes:
+                    task_dict["args"] = {**task.args, "removes": task.removes}
             if task.tags:
                 task_dict["tags"] = task.tags
             tasks_data.append(task_dict)

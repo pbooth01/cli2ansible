@@ -13,11 +13,13 @@ class TestParseCastFile:
 
     def test_parse_cast_file_success(self) -> None:
         """Test reading and parsing a .cast file from disk."""
-        # Arrange
+        # Arrange - use OSC sequences for commands
         cast_content = (
             '{"version":3,"term":{"cols":80,"rows":24},"timestamp":1234567890}\n'
-            '[0.0,"o","hello"]\n'
-            '[1.0,"i","world"]\n'
+            '[0.0,"i","\\r"]\n'
+            '[0.5,"o","\\u001b]2;mkdir test\\u0007"]\n'
+            '[1.0,"i","\\r"]\n'
+            '[1.5,"o","\\u001b]2;ls\\u0007"]\n'
         )
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".cast", delete=False) as f:
@@ -31,9 +33,9 @@ class TestParseCastFile:
             # Assert
             assert len(events) == 2
             assert events[0].event_type == "o"
-            assert events[0].data == "hello"
-            assert events[1].event_type == "i"
-            assert events[1].data == "world"
+            assert events[0].data == "mkdir test"
+            assert events[1].event_type == "o"
+            assert events[1].data == "ls"
             assert isinstance(events[0].session_id, UUID)
         finally:
             Path(temp_path).unlink()
@@ -49,11 +51,13 @@ class TestParseCastFile:
 
     def test_parse_cast_file_session_override(self) -> None:
         """Test overriding session_id assigns new ID to all events."""
-        # Arrange
+        # Arrange - use OSC sequences
         cast_content = (
             '{"version":3,"timestamp":1234567890}\n'
-            '[0.0,"o","test1"]\n'
-            '[1.0,"o","test2"]\n'
+            '[0.0,"i","\\r"]\n'
+            '[0.5,"o","\\u001b]2;pwd\\u0007"]\n'
+            '[1.0,"i","\\r"]\n'
+            '[1.5,"o","\\u001b]2;ls\\u0007"]\n'
         )
         custom_session_id = uuid4()
 
@@ -102,11 +106,11 @@ class TestParseCastFile:
 
     def test_parse_cast_file_binary_mode(self) -> None:
         """Test that file is read in binary mode."""
-        # Arrange
-        # Use content with Unicode characters to verify binary handling
+        # Arrange - use OSC sequence with Unicode characters
         cast_content = (
             '{"version":3,"timestamp":1234567890}\n'
-            '[0.0,"o","hello 世界"]\n'
+            '[0.0,"i","\\r"]\n'
+            '[0.5,"o","\\u001b]2;echo hello 世界\\u0007"]\n'
         )
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".cast", delete=False, encoding="utf-8") as f:
@@ -119,6 +123,6 @@ class TestParseCastFile:
 
             # Assert
             assert len(events) == 1
-            assert events[0].data == "hello 世界"
+            assert events[0].data == "echo hello 世界"
         finally:
             Path(temp_path).unlink()

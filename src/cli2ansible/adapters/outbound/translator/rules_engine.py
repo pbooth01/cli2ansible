@@ -136,7 +136,6 @@ class RulesEngine(TranslatorPort):
                 confidence=TaskConfidence.HIGH,
                 original_command=command.raw,
                 become=command.sudo,
-                creates=path,
             )
         return None
 

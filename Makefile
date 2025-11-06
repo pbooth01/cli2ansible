@@ -1,4 +1,4 @@
-.PHONY: help install dev-install test lint type-check format clean docker-up docker-down docker-logs migrate lock convert-cast
+.PHONY: help install dev-install test lint type-check format clean docker-up docker-down docker-logs docker-clean migrate lock convert-cast
 
 help:
 	@echo "Available commands:"
@@ -12,6 +12,7 @@ help:
 	@echo "  docker-up     - Start Docker services"
 	@echo "  docker-down   - Stop Docker services"
 	@echo "  docker-logs   - Show Docker logs"
+	@echo "  docker-clean  - Stop Docker services and remove volumes"
 	@echo "  migrate       - Run database migrations"
 	@echo "  lock          - Update poetry.lock file"
 	@echo "  convert-cast  - Convert .cast file to JSON (usage: make convert-cast CAST_FILE=path/to/file.cast [OUTPUT=output.json])"
@@ -54,6 +55,9 @@ docker-down:
 
 docker-logs:
 	docker-compose logs -f app
+
+docker-clean:
+	docker-compose down -v
 
 migrate:
 	poetry run alembic upgrade head

@@ -13,19 +13,21 @@ Generate and execute a complete workflow to implement a feature from PRD through
 ## Context Setup
 First, determine if a PRD exists:
 
-**If user provides a PRD path or reference:**
+**If user provides an EXPLICIT PRD path (e.g., "docs/prds/my-feature.md"):**
 1. Read `VERSION` file to determine release branch (`release-<version>`)
 2. Read the PRD content from the specified path
 3. Load specialized agent definitions from `prompts/agents/`
 4. Proceed to Step 1: Planning
 
-**If user provides only a feature description (no PRD):**
+**If user provides ONLY a feature description (no explicit PRD path):**
 1. Read `VERSION` file to determine release branch (`release-<version>`)
 2. Generate PRD using PRDAgent (see PRD Generation Workflow below)
-3. **IMPORTANT:** Present the generated PRD to the user for review
-4. Wait for user confirmation or edits before proceeding
-5. Load specialized agent definitions from `prompts/agents/`
-6. Proceed to Step 1: Planning
+3. Save the PRD to `docs/prds/<feature-name>.md`
+4. **CRITICAL:** Present the generated PRD to the user for review
+5. **WAIT for explicit user approval** before proceeding (user must reply "approved" or similar)
+6. If user requests changes, update the PRD and ask for approval again
+7. Only after approval: Load specialized agent definitions from `prompts/agents/`
+8. Only after approval: Proceed to Step 1: Planning
 
 ### PRD Generation Workflow (when no PRD provided)
 
@@ -68,11 +70,11 @@ Return the complete PRD in markdown format ready to save to docs/prds/<feature-n
 
 After receiving the PRD from PRDAgent:
 1. Save it to `docs/prds/<feature-name>.md`
-2. Present the PRD to the user with a summary
-3. Ask: "Please review the PRD above. Reply with 'approved' to proceed with implementation, or provide feedback for revisions."
-4. **WAIT for user response before proceeding**
-5. If user requests changes, update the PRD and ask for approval again
-6. Only proceed to implementation after explicit user approval
+2. Present the PRD contents to the user
+3. Ask: "**PRD created at docs/prds/<feature-name>.md**. Please review the PRD above. Reply with 'approved' to proceed with implementation, or provide feedback for revisions."
+4. **STOP and WAIT for user response - DO NOT PROCEED**
+5. If user requests changes, update the PRD file and ask for approval again
+6. Only proceed to implementation planning after explicit user approval ("approved", "looks good", "ok", etc.)
 
 ## Implementation Workflow
 
@@ -250,16 +252,17 @@ EOF
 - **DocumentationAgent** (`prompts/agents/documentation-agent.yaml`): API & architecture documentation
 
 ## Mandatory Rules
-1. **MUST** generate PRD using PRDAgent if user doesn't provide one
-2. **MUST** wait for explicit user approval of PRD before implementing
-3. **MUST** use TodoWrite to track all tasks and mark them complete
-4. **MUST** delegate test generation to TestAgent
-5. **MUST** delegate security review to SecurityAgent
-6. **MUST** pass all quality checks (format, lint, type-check, test)
-7. **MUST** address High/Critical security findings
-8. **MUST** follow hexagonal architecture patterns
-9. **MUST** maintain or improve code coverage
-10. **MUST** create feature branch targeting release branch from VERSION
+1. **MUST** generate PRD using PRDAgent if user doesn't provide an explicit PRD path
+2. **MUST** save PRD to docs/prds/ directory before showing to user
+3. **MUST** wait for explicit user approval of PRD before implementing (STOP and WAIT)
+4. **MUST** use TodoWrite to track all tasks and mark them complete
+5. **MUST** delegate test generation to TestAgent
+6. **MUST** delegate security review to SecurityAgent
+7. **MUST** pass all quality checks (format, lint, type-check, test)
+8. **MUST** address High/Critical security findings
+9. **MUST** follow hexagonal architecture patterns
+10. **MUST** maintain or improve code coverage
+11. **MUST** create feature branch targeting release branch from VERSION
 
 ## Error Handling
 If any step fails:
@@ -273,8 +276,13 @@ If any step fails:
 
 **Step 1:** Read the VERSION file to determine the target release branch.
 
-**Step 2:** Determine if a PRD exists:
-- If the user provided a PRD path (e.g., "docs/prds/my-feature.md"), read it and proceed to implementation.
-- If the user only provided a feature description, use PRDAgent to generate a PRD, present it for approval, and WAIT for user confirmation before proceeding.
+**Step 2:** Determine if a PRD path was EXPLICITLY provided:
+- **Explicit PRD path provided** (e.g., "implement docs/prds/my-feature.md"): Read the PRD and proceed to implementation.
+- **NO explicit PRD path** (e.g., "implement support for X feature"):
+  1. Use PRDAgent to generate a PRD
+  2. Save to docs/prds/<feature-name>.md
+  3. Show PRD to user for review
+  4. **STOP and WAIT for user approval**
+  5. Do not proceed until user explicitly approves
 
-**Step 3:** After PRD is confirmed, create a TodoWrite implementation plan and begin work.
+**Step 3:** After PRD is confirmed/approved, create a TodoWrite implementation plan and begin work.

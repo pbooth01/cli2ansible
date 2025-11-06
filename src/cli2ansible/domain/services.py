@@ -57,6 +57,7 @@ class IngestSession:
         for event in events:
             if event.event_type == "o":  # Output
                 current_line += event.data
+                # Process lines if we have newlines OR if this is a new event without continuation
                 if "\n" in current_line or "\r" in current_line:
                     lines = current_line.split("\n")
                     for line in lines[:-1]:
@@ -66,6 +67,22 @@ class IngestSession:
                         if cmd:
                             commands.append(cmd)
                     current_line = lines[-1]
+                else:
+                    # If there's no newline, treat each event as a potential command
+                    cmd = self._parse_command_line(
+                        current_line, session_id, event.timestamp
+                    )
+                    if cmd:
+                        commands.append(cmd)
+                    current_line = ""
+
+        # Process any remaining line
+        if current_line:
+            cmd = self._parse_command_line(
+                current_line, session_id, events[-1].timestamp if events else 0.0
+            )
+            if cmd:
+                commands.append(cmd)
 
         self.repo.save_commands(commands)
         return commands

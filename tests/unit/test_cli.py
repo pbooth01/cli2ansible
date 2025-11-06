@@ -15,11 +15,13 @@ class TestConvertCastToJson:
 
     def test_convert_cast_to_json_stdout(self) -> None:
         """Test converting .cast file outputs to stdout."""
-        # Arrange
+        # Arrange - use OSC sequences
         cast_content = (
             '{"version":3,"timestamp":1234567890}\n'
-            '[0.0,"o","test output"]\n'
-            '[1.0,"i","test input"]\n'
+            '[0.0,"i","\\r"]\n'
+            '[0.5,"o","\\u001b]2;ls\\u0007"]\n'
+            '[1.0,"i","\\r"]\n'
+            '[1.5,"o","\\u001b]2;pwd\\u0007"]\n'
         )
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".cast", delete=False) as f:
@@ -39,20 +41,21 @@ class TestConvertCastToJson:
             parsed = json.loads(output)
             assert len(parsed) == 2
             assert parsed[0]["event_type"] == "o"
-            assert parsed[0]["data"] == "test output"
-            assert parsed[0]["timestamp"] == 0.0
+            assert parsed[0]["data"] == "ls"
+            assert parsed[0]["timestamp"] == 0.0  # Normalized
             assert parsed[0]["sequence"] == 0
-            assert parsed[1]["event_type"] == "i"
-            assert parsed[1]["data"] == "test input"
+            assert parsed[1]["event_type"] == "o"
+            assert parsed[1]["data"] == "pwd"
         finally:
             Path(temp_path).unlink()
 
     def test_convert_cast_to_json_file(self) -> None:
         """Test converting .cast file writes to output file."""
-        # Arrange
+        # Arrange - use OSC sequence
         cast_content = (
             '{"version":3,"timestamp":1234567890}\n'
-            '[0.0,"o","hello"]\n'
+            '[0.0,"i","\\r"]\n'
+            '[0.5,"o","\\u001b]2;echo hello\\u0007"]\n'
         )
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".cast", delete=False) as f:
@@ -74,7 +77,7 @@ class TestConvertCastToJson:
             parsed = json.loads(content)
             assert len(parsed) == 1
             assert parsed[0]["event_type"] == "o"
-            assert parsed[0]["data"] == "hello"
+            assert parsed[0]["data"] == "echo hello"
 
             # Check stderr message
             stderr_output = captured_stderr.getvalue()
@@ -110,10 +113,11 @@ class TestConvertCastToJson:
 
     def test_convert_cast_to_json_pretty_print(self) -> None:
         """Test JSON output is pretty-printed with indentation."""
-        # Arrange
+        # Arrange - use OSC sequence
         cast_content = (
             '{"version":3,"timestamp":1234567890}\n'
-            '[0.0,"o","test"]\n'
+            '[0.0,"i","\\r"]\n'
+            '[0.5,"o","\\u001b]2;test\\u0007"]\n'
         )
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".cast", delete=False) as f:
@@ -136,10 +140,11 @@ class TestConvertCastToJson:
 
     def test_convert_cast_to_json_excludes_session_id(self) -> None:
         """Test JSON output excludes session_id field."""
-        # Arrange
+        # Arrange - use OSC sequence
         cast_content = (
             '{"version":3,"timestamp":1234567890}\n'
-            '[0.0,"o","test"]\n'
+            '[0.0,"i","\\r"]\n'
+            '[0.5,"o","\\u001b]2;test\\u0007"]\n'
         )
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".cast", delete=False) as f:
@@ -169,10 +174,11 @@ class TestCLIMain:
 
     def test_cli_main_convert_cast_stdout(self) -> None:
         """Test CLI with convert-cast command outputs to stdout."""
-        # Arrange
+        # Arrange - use OSC sequence
         cast_content = (
             '{"version":3,"timestamp":1234567890}\n'
-            '[0.0,"o","cli test"]\n'
+            '[0.0,"i","\\r"]\n'
+            '[0.5,"o","\\u001b]2;cli test\\u0007"]\n'
         )
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".cast", delete=False) as f:
@@ -182,9 +188,9 @@ class TestCLIMain:
         try:
             # Act
             captured_output = StringIO()
-            with patch("sys.argv", ["cli2ansible", "convert-cast", temp_path]):
-                with patch("sys.stdout", captured_output):
-                    main()
+            with patch("sys.argv", ["cli2ansible", "convert-cast", temp_path]), \
+                 patch("sys.stdout", captured_output):
+                main()
 
             # Assert
             output = captured_output.getvalue()
@@ -196,10 +202,11 @@ class TestCLIMain:
 
     def test_cli_main_convert_cast_file_output(self) -> None:
         """Test CLI with convert-cast and -o flag writes to file."""
-        # Arrange
+        # Arrange - use OSC sequence
         cast_content = (
             '{"version":3,"timestamp":1234567890}\n'
-            '[0.0,"o","file test"]\n'
+            '[0.0,"i","\\r"]\n'
+            '[0.5,"o","\\u001b]2;file test\\u0007"]\n'
         )
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".cast", delete=False) as f:
@@ -231,10 +238,10 @@ class TestCLIMain:
 
         # Act & Assert
         captured_stderr = StringIO()
-        with patch("sys.argv", ["cli2ansible", "convert-cast", nonexistent_path]):
-            with patch("sys.stderr", captured_stderr):
-                with pytest.raises(SystemExit) as exc_info:
-                    main()
+        with patch("sys.argv", ["cli2ansible", "convert-cast", nonexistent_path]), \
+             patch("sys.stderr", captured_stderr), \
+             pytest.raises(SystemExit) as exc_info:
+            main()
 
         assert exc_info.value.code == 1
         stderr_output = captured_stderr.getvalue()
@@ -251,10 +258,10 @@ class TestCLIMain:
         try:
             # Act & Assert
             captured_stderr = StringIO()
-            with patch("sys.argv", ["cli2ansible", "convert-cast", temp_path]):
-                with patch("sys.stderr", captured_stderr):
-                    with pytest.raises(SystemExit) as exc_info:
-                        main()
+            with patch("sys.argv", ["cli2ansible", "convert-cast", temp_path]), \
+                 patch("sys.stderr", captured_stderr), \
+                 pytest.raises(SystemExit) as exc_info:
+                main()
 
             assert exc_info.value.code == 1
             stderr_output = captured_stderr.getvalue()
@@ -265,16 +272,16 @@ class TestCLIMain:
     def test_cli_main_no_command(self) -> None:
         """Test CLI without command shows help and exits."""
         # Act & Assert
-        with patch("sys.argv", ["cli2ansible"]):
-            with pytest.raises(SystemExit):
-                main()
+        with patch("sys.argv", ["cli2ansible"]), \
+             pytest.raises(SystemExit):
+            main()
 
     def test_cli_main_help(self) -> None:
         """Test CLI with --help shows usage."""
         # Act & Assert
-        with patch("sys.argv", ["cli2ansible", "convert-cast", "--help"]):
-            with pytest.raises(SystemExit) as exc_info:
-                main()
+        with patch("sys.argv", ["cli2ansible", "convert-cast", "--help"]), \
+             pytest.raises(SystemExit) as exc_info:
+            main()
 
         # Help should exit with code 0
         assert exc_info.value.code == 0
@@ -313,11 +320,11 @@ class TestCLIMain:
         try:
             # Act & Assert
             captured_stderr = StringIO()
-            with patch("sys.argv", ["cli2ansible", "convert-cast", temp_path]):
-                with patch("cli2ansible.cli.parse_cast_file", side_effect=RuntimeError("Unexpected error")):
-                    with patch("sys.stderr", captured_stderr):
-                        with pytest.raises(SystemExit) as exc_info:
-                            main()
+            with patch("sys.argv", ["cli2ansible", "convert-cast", temp_path]), \
+                 patch("cli2ansible.cli.parse_cast_file", side_effect=RuntimeError("Unexpected error")), \
+                 patch("sys.stderr", captured_stderr), \
+                 pytest.raises(SystemExit) as exc_info:
+                main()
 
             assert exc_info.value.code == 1
             stderr_output = captured_stderr.getvalue()
