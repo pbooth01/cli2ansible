@@ -1,4 +1,4 @@
-.PHONY: help install dev-install test lint type-check format clean docker-up docker-down docker-logs migrate lock
+.PHONY: help install dev-install test lint type-check format clean docker-up docker-down docker-logs migrate lock convert-cast
 
 help:
 	@echo "Available commands:"
@@ -14,6 +14,7 @@ help:
 	@echo "  docker-logs   - Show Docker logs"
 	@echo "  migrate       - Run database migrations"
 	@echo "  lock          - Update poetry.lock file"
+	@echo "  convert-cast  - Convert .cast file to JSON (usage: make convert-cast CAST_FILE=path/to/file.cast [OUTPUT=output.json])"
 
 install:
 	poetry install --only main
@@ -56,3 +57,15 @@ docker-logs:
 
 migrate:
 	poetry run alembic upgrade head
+
+convert-cast:
+ifndef CAST_FILE
+	@echo "Error: CAST_FILE not specified"
+	@echo "Usage: make convert-cast CAST_FILE=path/to/file.cast [OUTPUT=output.json]"
+	@exit 1
+endif
+ifdef OUTPUT
+	@poetry run python -m cli2ansible.cli convert-cast "$(CAST_FILE)" -o "$(OUTPUT)"
+else
+	@poetry run python -m cli2ansible.cli convert-cast "$(CAST_FILE)"
+endif
