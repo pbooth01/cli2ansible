@@ -35,6 +35,7 @@ class Session:
     status: SessionStatus = SessionStatus.CREATED
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    duration: float = 0.0
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -106,6 +107,13 @@ class Report:
     warnings: list[str] = field(default_factory=list)
     skipped_commands: list[str] = field(default_factory=list)
     generated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    module_breakdown: dict[str, int] = field(default_factory=dict)
+    high_confidence_percentage: float = 0.0
+    medium_confidence_percentage: float = 0.0
+    low_confidence_percentage: float = 0.0
+    session_duration_seconds: float = 0.0
+    most_common_commands: list[tuple[str, int]] = field(default_factory=list)
+    sudo_command_count: int = 0
 
 
 @dataclass

@@ -57,6 +57,7 @@ def create_app(
             status=domain_session.status.value,
             created_at=domain_session.created_at,
             updated_at=domain_session.updated_at,
+            duration=domain_session.duration,
             metadata=domain_session.metadata,
         )
 
@@ -72,6 +73,7 @@ def create_app(
             status=session.status.value,
             created_at=session.created_at,
             updated_at=session.updated_at,
+            duration=session.duration,
             metadata=session.metadata,
         )
 
@@ -280,9 +282,19 @@ def create_app(
     @app.get("/sessions/{session_id}/report", response_model=ReportResponse)
     async def get_report(session_id: UUID) -> Any:
         """Get translation report for a session."""
+        from cli2ansible.adapters.inbound.http.schemas import MostCommonCommand
+
         session = compile_service.repo.get(session_id)
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
+
+        # Auto-extract commands if not already done
+        commands = compile_service.repo.get_commands(session_id)
+        if not commands:
+            events = compile_service.repo.get_events(session_id)
+            if events:
+                # Extract commands from events
+                commands = ingest_service.extract_commands(session_id)
 
         # Re-compile to get report (in production, cache this)
         role, report = compile_service.compile(session_id)
@@ -296,6 +308,16 @@ def create_app(
             warnings=report.warnings,
             skipped_commands=report.skipped_commands,
             generated_at=report.generated_at,
+            module_breakdown=report.module_breakdown,
+            high_confidence_percentage=report.high_confidence_percentage,
+            medium_confidence_percentage=report.medium_confidence_percentage,
+            low_confidence_percentage=report.low_confidence_percentage,
+            session_duration_seconds=report.session_duration_seconds,
+            most_common_commands=[
+                MostCommonCommand(command=cmd, count=count)
+                for cmd, count in report.most_common_commands
+            ],
+            sudo_command_count=report.sudo_command_count,
         )
 
     @app.get("/sessions/{session_id}/playbook")

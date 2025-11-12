@@ -309,6 +309,8 @@ class CompilePlaybook:
 
     def compile(self, session_id: UUID) -> tuple[Role, Report]:
         """Compile session commands into an Ansible role."""
+        from collections import Counter
+
         session = self.repo.get(session_id)
         if not session:
             raise ValueError(f"Session {session_id} not found")
@@ -320,6 +322,9 @@ class CompilePlaybook:
         tasks: list[Task] = []
         report = Report(session_id=session_id, total_commands=len(commands))
 
+        # Track module usage
+        module_counts: dict[str, int] = {}
+
         for command in commands:
             task = self.translator.translate(command)
             if task:
@@ -330,8 +335,32 @@ class CompilePlaybook:
                     report.medium_confidence += 1
                 else:
                     report.low_confidence += 1
+
+                # Track module usage
+                module_counts[task.module] = module_counts.get(task.module, 0) + 1
             else:
                 report.skipped_commands.append(command.raw)
+
+        # Calculate percentages
+        if report.total_commands > 0:
+            report.high_confidence_percentage = (report.high_confidence / report.total_commands) * 100
+            report.medium_confidence_percentage = (report.medium_confidence / report.total_commands) * 100
+            report.low_confidence_percentage = (report.low_confidence / report.total_commands) * 100
+
+        # Calculate session duration
+        if commands:
+            timestamps = [cmd.timestamp for cmd in commands]
+            report.session_duration_seconds = max(timestamps) - min(timestamps)
+
+        # Calculate most common commands (top 5)
+        command_counter = Counter(cmd.normalized for cmd in commands)
+        report.most_common_commands = command_counter.most_common(5)
+
+        # Count sudo commands
+        report.sudo_command_count = sum(1 for cmd in commands if cmd.sudo)
+
+        # Set module breakdown
+        report.module_breakdown = module_counts
 
         role = Role(name=session.name or f"role_{session_id}", tasks=tasks)
 
