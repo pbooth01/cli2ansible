@@ -1,17 +1,16 @@
 """Unit tests for compile service enhanced reporting."""
 
-from uuid import uuid4
 
 import pytest
 from cli2ansible.adapters.outbound.db.repository import SQLAlchemyRepository
 from cli2ansible.adapters.outbound.generators.ansible_role import AnsibleRoleGenerator
 from cli2ansible.adapters.outbound.translator.rules_engine import RulesEngine
-from cli2ansible.domain.models import Command, Event, SessionStatus, TaskConfidence
+from cli2ansible.domain.models import Command
 from cli2ansible.domain.services import CompilePlaybook, IngestSession
 
 
 @pytest.fixture()
-def repo():
+def repo() -> SQLAlchemyRepository:
     """Create in-memory repository for testing."""
     repo = SQLAlchemyRepository("sqlite:///:memory:")
     repo.create_tables()
@@ -19,20 +18,22 @@ def repo():
 
 
 @pytest.fixture()
-def ingest_service(repo):
+def ingest_service(repo: SQLAlchemyRepository) -> IngestSession:
     """Create IngestSession service."""
     return IngestSession(repo)
 
 
 @pytest.fixture()
-def compile_service(repo):
+def compile_service(repo: SQLAlchemyRepository) -> CompilePlaybook:
     """Create CompilePlaybook service with mock dependencies."""
     from cli2ansible.domain.ports import ObjectStorePort
 
     class MockObjectStore(ObjectStorePort):
         """Mock object store."""
 
-        def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
+        def upload(
+            self, key: str, data: bytes, content_type: str = "application/octet-stream"
+        ) -> str:
             return key
 
         def download(self, key: str) -> bytes:
@@ -50,7 +51,11 @@ def compile_service(repo):
     return CompilePlaybook(repo, translator, generator, store)
 
 
-def test_compile_report_includes_module_breakdown(ingest_service, compile_service, repo):
+def test_compile_report_includes_module_breakdown(
+    ingest_service: IngestSession,
+    compile_service: CompilePlaybook,
+    repo: SQLAlchemyRepository,
+) -> None:
     """Test that report includes module breakdown statistics."""
     # Create session
     session = ingest_service.create_session("test-session")
@@ -100,7 +105,11 @@ def test_compile_report_includes_module_breakdown(ingest_service, compile_servic
     assert report.module_breakdown["file"] == 1
 
 
-def test_compile_report_includes_quality_percentages(ingest_service, compile_service, repo):
+def test_compile_report_includes_quality_percentages(
+    ingest_service: IngestSession,
+    compile_service: CompilePlaybook,
+    repo: SQLAlchemyRepository,
+) -> None:
     """Test that report includes quality percentage calculations."""
     # Create session
     session = ingest_service.create_session("test-session")
@@ -142,7 +151,11 @@ def test_compile_report_includes_quality_percentages(ingest_service, compile_ser
     assert report.medium_confidence_percentage == 0.0
 
 
-def test_compile_report_includes_session_duration(ingest_service, compile_service, repo):
+def test_compile_report_includes_session_duration(
+    ingest_service: IngestSession,
+    compile_service: CompilePlaybook,
+    repo: SQLAlchemyRepository,
+) -> None:
     """Test that report includes session duration calculation."""
     # Create session
     session = ingest_service.create_session("test-session")
@@ -178,7 +191,11 @@ def test_compile_report_includes_session_duration(ingest_service, compile_servic
     assert report.session_duration_seconds == pytest.approx(35.3, abs=0.01)
 
 
-def test_compile_report_includes_most_common_commands(ingest_service, compile_service, repo):
+def test_compile_report_includes_most_common_commands(
+    ingest_service: IngestSession,
+    compile_service: CompilePlaybook,
+    repo: SQLAlchemyRepository,
+) -> None:
     """Test that report includes most common commands."""
     # Create session
     session = ingest_service.create_session("test-session")
@@ -230,7 +247,11 @@ def test_compile_report_includes_most_common_commands(ingest_service, compile_se
     assert command_counts["systemctl start nginx"] == 2
 
 
-def test_compile_report_includes_sudo_count(ingest_service, compile_service, repo):
+def test_compile_report_includes_sudo_count(
+    ingest_service: IngestSession,
+    compile_service: CompilePlaybook,
+    repo: SQLAlchemyRepository,
+) -> None:
     """Test that report includes sudo command count."""
     # Create session
     session = ingest_service.create_session("test-session")
@@ -269,7 +290,11 @@ def test_compile_report_includes_sudo_count(ingest_service, compile_service, rep
     assert report.sudo_command_count == 2
 
 
-def test_compile_report_handles_empty_commands(ingest_service, compile_service, repo):
+def test_compile_report_handles_empty_commands(
+    ingest_service: IngestSession,
+    compile_service: CompilePlaybook,
+    repo: SQLAlchemyRepository,
+) -> None:
     """Test that report handles sessions with no commands gracefully."""
     # Create session
     session = ingest_service.create_session("test-session")
@@ -288,7 +313,11 @@ def test_compile_report_handles_empty_commands(ingest_service, compile_service, 
     assert len(report.most_common_commands) == 0
 
 
-def test_compile_report_handles_commands_with_zero_timestamps(ingest_service, compile_service, repo):
+def test_compile_report_handles_commands_with_zero_timestamps(
+    ingest_service: IngestSession,
+    compile_service: CompilePlaybook,
+    repo: SQLAlchemyRepository,
+) -> None:
     """Test that report handles commands with zero timestamps."""
     # Create session
     session = ingest_service.create_session("test-session")
@@ -320,12 +349,15 @@ def test_compile_report_handles_commands_with_zero_timestamps(ingest_service, co
     assert report.total_commands == 2
 
 
-
-def test_compile_report_counts_(ingest_service, compile_service, repo):
-     # Create session
+def test_compile_report_counts_(
+    ingest_service: IngestSession,
+    compile_service: CompilePlaybook,
+    repo: SQLAlchemyRepository,
+) -> None:
+    # Create session
     session = ingest_service.create_session("test-session")
 
-        # Create commands with zero timestamps
+    # Create commands with zero timestamps
     commands = [
         Command(
             session_id=session.id,

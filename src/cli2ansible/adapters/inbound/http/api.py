@@ -48,9 +48,7 @@ def create_app(
     @app.post("/sessions", response_model=SessionResponse)
     async def create_session(session: SessionCreate) -> Any:
         """Create a new session."""
-        domain_session = ingest_service.create_session(
-            name=session.name, metadata=session.metadata
-        )
+        domain_session = ingest_service.create_session(name=session.name, metadata=session.metadata)
         return SessionResponse(
             id=domain_session.id,
             name=domain_session.name,
@@ -65,6 +63,8 @@ def create_app(
     async def get_session(session_id: UUID) -> Any:
         """Get session by ID."""
         session = ingest_service.repo.get(session_id)
+        a = 1 / 0
+        print(a)
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
         return SessionResponse(
@@ -78,9 +78,7 @@ def create_app(
         )
 
     @app.post("/sessions/{session_id}/events")
-    async def upload_events(
-        session_id: UUID, events: list[EventCreate]
-    ) -> dict[str, str]:
+    async def upload_events(session_id: UUID, events: list[EventCreate]) -> dict[str, str]:
         """Upload events for a session."""
         from cli2ansible.domain.models import Event
 
@@ -102,9 +100,7 @@ def create_app(
         """Upload a .cast file to a session."""
         # Validate file
         if not file.filename or not file.filename.endswith(".cast"):
-            raise HTTPException(
-                status_code=400, detail="File must have .cast extension"
-            )
+            raise HTTPException(status_code=400, detail="File must have .cast extension")
 
         # Read file data
         file_data = await file.read()
@@ -118,9 +114,7 @@ def create_app(
 
         try:
             # Upload and parse
-            events = ingest_service.upload_cast_file(
-                session_id, file_data, file.filename
-            )
+            events = ingest_service.upload_cast_file(session_id, file_data, file.filename)
 
             return CastUploadResponse(
                 status="parsed",
@@ -169,9 +163,7 @@ def create_app(
         )
 
     @app.patch("/sessions/{session_id}/events", response_model=BatchEventUpdateResponse)
-    async def update_events_batch(
-        session_id: UUID, request: BatchEventUpdateRequest
-    ) -> Any:
+    async def update_events_batch(session_id: UUID, request: BatchEventUpdateRequest) -> Any:
         """Update multiple events in a batch."""
         session = ingest_service.repo.get(session_id)
         if not session:
@@ -209,9 +201,7 @@ def create_app(
                 )
             else:
                 formatted_results.append(
-                    EventUpdateResult(
-                        id=result["id"], status="error", error=result.get("error")
-                    )
+                    EventUpdateResult(id=result["id"], status="error", error=result.get("error"))
                 )
 
         # Return 207 if partial success, 200 if all succeeded
@@ -329,14 +319,10 @@ def create_app(
             return StreamingResponse(
                 iter([data]),
                 media_type="application/zip",
-                headers={
-                    "Content-Disposition": f"attachment; filename=role_{session_id}.zip"
-                },
+                headers={"Content-Disposition": f"attachment; filename=role_{session_id}.zip"},
             )
         except Exception as e:
-            raise HTTPException(
-                status_code=404, detail=f"Artifact not found: {str(e)}"
-            ) from e
+            raise HTTPException(status_code=404, detail=f"Artifact not found: {str(e)}") from e
 
     @app.post("/sessions/{session_id}/clean", response_model=CleanSessionResponse)
     async def clean_session(session_id: UUID) -> Any:

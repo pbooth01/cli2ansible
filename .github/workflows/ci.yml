@@ -87,6 +87,10 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           pull_number: ${{ github.event.pull_request.number }}
           repo_name: ${{ github.repository }}
+          custom_guidelines: |
+            - Leave individual inline comments on specific code issues, not just a summary
+            - Each issue should have its own comment anchored to the relevant line(s)
+            - Provide actionable feedback with code suggestions where appropriate
           rules: |
             [
               ".augment/rules/architecture.md",

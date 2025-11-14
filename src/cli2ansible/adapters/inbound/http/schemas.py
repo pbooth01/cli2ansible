@@ -160,8 +160,9 @@ class BatchEventUpdate(BaseModel):
     data: str | None = None
     event_type: str | None = None
 
-    @validator("event_type")
-    def validate_event_type(cls: type, v: str | None) -> str | None:  # noqa: N805
+    @field_validator("event_type")
+    @classmethod
+    def validate_event_type(cls, v: str | None) -> str | None:
         """Validate event type."""
         if v and v not in ("i", "o", "x"):
             raise ValueError("event_type must be 'i', 'o', or 'x'")
@@ -171,9 +172,7 @@ class BatchEventUpdate(BaseModel):
 class BatchEventUpdateRequest(BaseModel):
     """Request schema for batch event updates."""
 
-    updates: list[BatchEventUpdate] = Field(
-        ..., description="List of event updates", min_length=1
-    )
+    updates: list[BatchEventUpdate] = Field(..., description="List of event updates", min_length=1)
 
 
 class EventUpdateResult(BaseModel):
