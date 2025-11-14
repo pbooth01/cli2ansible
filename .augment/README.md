@@ -133,26 +133,37 @@ Check for:
 
 ### Automated PR Reviews
 
-Create `.github/workflows/augment-pr-review.yml`:
+This project uses the official **`augmentcode/review-pr`** GitHub Action for automated PR reviews.
+
+The action is configured in `.github/workflows/ci.yml` and automatically:
+- ✅ Runs on every pull request
+- ✅ Applies all rules from `.augment/rules/`
+- ✅ Posts inline comments on specific lines
+- ✅ Submits a GitHub review with findings
+
+**Current configuration:**
 
 ```yaml
-name: Augment PR Review
-
-on:
-  pull_request:
-    types: [opened, synchronize]
-
-jobs:
-  review:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Augment Review
-        uses: augmentcode/pr-review-action@v1
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          augment-api-key: ${{ secrets.AUGMENT_API_KEY }}
+- name: Generate PR Review
+  uses: augmentcode/review-pr@v0
+  with:
+    augment_session_auth: ${{ secrets.AUGMENT_SESSION_AUTH }}
+    github_token: ${{ secrets.GITHUB_TOKEN }}
+    pull_number: ${{ github.event.pull_request.number }}
+    repo_name: ${{ github.repository }}
+    rules: |
+      [
+        ".augment/rules/architecture.md",
+        ".augment/rules/code-quality.md",
+        ".augment/rules/security.md",
+        ".augment/rules/testing.md",
+        ".augment/rules/documentation.md",
+        ".augment/rules/performance.md"
+      ]
 ```
+
+**Required GitHub Secret:**
+- `AUGMENT_SESSION_AUTH` - Get this from `auggie tokens print` or `~/.augment/session.json`
 
 ## Customization
 
