@@ -68,6 +68,26 @@ ignore_missing_imports = true
 module = "botocore.*"
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = "sqlalchemy.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "cli2ansible.adapters.inbound.http.api"
+disable_error_code = ["misc"]
+
+[[tool.mypy.overrides]]
+module = "cli2ansible.adapters.outbound.db.orm"
+disable_error_code = ["misc"]
+
+[[tool.mypy.overrides]]
+module = "cli2ansible.settings"
+disable_error_code = ["misc"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disable_error_code = ["misc"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]

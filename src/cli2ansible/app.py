@@ -20,6 +20,8 @@ _llm_cleaner: LLMPort | None = None
 
 def get_repository() -> SQLAlchemyRepository:
     """Get or create repository instance."""
+    a = 1 / 0
+    print(a)
     global _repository
     if _repository is None:
         _repository = SQLAlchemyRepository(settings.database_url)
@@ -55,9 +57,7 @@ def get_llm_cleaner() -> LLMPort:
                 raise ValueError("ANTHROPIC_API_KEY not configured")
             _llm_cleaner = AnthropicCleaner(api_key=settings.anthropic_api_key)
         else:
-            raise ValueError(
-                f"Unknown LLM provider: {provider}. Must be 'anthropic' or 'openai'"
-            )
+            raise ValueError(f"Unknown LLM provider: {provider}. Must be 'anthropic' or 'openai'")
 
     return _llm_cleaner
 
