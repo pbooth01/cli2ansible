@@ -19,9 +19,7 @@ class SessionORM(Base):
 
     __tablename__ = "sessions"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="created")
     created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(UTC))
@@ -33,14 +31,24 @@ class SessionORM(Base):
     )
 
 
+class CastFileORM(Base):
+    """Cast file uploads table."""
+
+    __tablename__ = "cast_files"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    session_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    file_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    file_size: Mapped[int] = mapped_column(nullable=False)
+    uploaded_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(UTC))
+
+
 class EventORM(Base):
     """Event table."""
 
     __tablename__ = "events"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     session_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
     timestamp: Mapped[float] = mapped_column(Float, nullable=False)
     event_type: Mapped[str] = mapped_column(String(10), nullable=False)
@@ -64,3 +72,4 @@ class CommandORM(Base):
     timestamp: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     exit_code: Mapped[int | None] = mapped_column(Integer, nullable=True)
     output: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    event_sequence: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

@@ -8,7 +8,7 @@ This guide walks you through a complete demo of converting terminal commands int
    ```bash
    # Make sure Docker is running
    make docker-up
-   
+
    # Or if using Poetry directly:
    poetry run uvicorn cli2ansible.app:app --reload
    ```
@@ -53,6 +53,7 @@ echo "Created session: $SESSION_ID"
 ```
 
 ### Step 2: Upload Terminal Events
+
 
 Simulate terminal commands by uploading events. Each event represents output from a terminal session.
 
@@ -338,4 +339,3 @@ docker-compose ps postgres
 - Test the role with Molecule (if installed)
 - Customize the translation rules in `src/cli2ansible/adapters/outbound/translator/rules_engine.py`
 - Add more command patterns to support additional workflows
-

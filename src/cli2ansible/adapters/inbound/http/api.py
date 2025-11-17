@@ -1,8 +1,10 @@
 """FastAPI HTTP adapter."""
 
+import logging
 from typing import Any
 from uuid import UUID
 
+from cli2ansible.domain.models import CastFile
 from cli2ansible.domain.services import (
     CleanSession,
     CompilePlaybook,
@@ -10,12 +12,14 @@ from cli2ansible.domain.services import (
     VersionConflictError,
 )
 from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from .schemas import (
     ArtifactResponse,
     BatchEventUpdateRequest,
     BatchEventUpdateResponse,
+    CastFileResponse,
     CastUploadResponse,
     CleanedCommandResponse,
     CleaningReportResponse,
@@ -31,6 +35,8 @@ from .schemas import (
     SessionResponse,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def create_app(
     ingest_service: IngestSession,
@@ -40,6 +46,36 @@ def create_app(
     """Create FastAPI application."""
     app = FastAPI(title="cli2ansible", version="0.1.0")
 
+    # Add CORS middleware to allow requests from the frontend
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # Allow all origins for development
+        allow_credentials=True,
+        allow_methods=["*"],  # Allow all methods including DELETE
+        allow_headers=["*"],
+    )
+
+    def session_to_response(session: Any, cast_file: CastFile | None = None) -> SessionResponse:
+        """Convert session domain model to API response with optional cast file."""
+        cast_file_response = None
+        if cast_file:
+            cast_file_response = CastFileResponse(
+                id=cast_file.id,
+                session_id=cast_file.session_id,
+                file_name=cast_file.file_name,
+                file_size=cast_file.file_size,
+                uploaded_at=cast_file.uploaded_at,
+            )
+        return SessionResponse(
+            id=session.id,
+            name=session.name,
+            status=session.status.value,
+            created_at=session.created_at,
+            updated_at=session.updated_at,
+            metadata=session.metadata,
+            cast_file=cast_file_response,
+        )
+
     @app.get("/")
     async def root() -> dict[str, str]:
         """Health check endpoint."""
@@ -48,17 +84,18 @@ def create_app(
     @app.post("/sessions", response_model=SessionResponse)
     async def create_session(session: SessionCreate) -> Any:
         """Create a new session."""
-        domain_session = ingest_service.create_session(
-            name=session.name, metadata=session.metadata
-        )
-        return SessionResponse(
-            id=domain_session.id,
-            name=domain_session.name,
-            status=domain_session.status.value,
-            created_at=domain_session.created_at,
-            updated_at=domain_session.updated_at,
-            metadata=domain_session.metadata,
-        )
+        domain_session = ingest_service.create_session(name=session.name, metadata=session.metadata)
+        return session_to_response(domain_session)
+
+    @app.get("/sessions")
+    async def list_sessions() -> dict[str, list[SessionResponse]]:
+        """List all sessions."""
+        sessions = ingest_service.repo.list_all()
+        return {
+            "sessions": [
+                session_to_response(s, ingest_service.repo.get_cast_file(s.id)) for s in sessions
+            ]
+        }
 
     @app.get("/sessions/{session_id}", response_model=SessionResponse)
     async def get_session(session_id: UUID) -> Any:
@@ -66,19 +103,20 @@ def create_app(
         session = ingest_service.repo.get(session_id)
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
-        return SessionResponse(
-            id=session.id,
-            name=session.name,
-            status=session.status.value,
-            created_at=session.created_at,
-            updated_at=session.updated_at,
-            metadata=session.metadata,
-        )
+        cast_file = ingest_service.repo.get_cast_file(session_id)
+        return session_to_response(session, cast_file)
+
+    @app.delete("/sessions/{session_id}")
+    async def delete_session(session_id: UUID) -> dict[str, str]:
+        """Delete a session and all related data."""
+        session = ingest_service.repo.get(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        ingest_service.repo.delete(session_id)
+        return {"message": "Session deleted successfully"}
 
     @app.post("/sessions/{session_id}/events")
-    async def upload_events(
-        session_id: UUID, events: list[EventCreate]
-    ) -> dict[str, str]:
+    async def upload_events(session_id: UUID, events: list[EventCreate]) -> dict[str, str]:
         """Upload events for a session."""
         from cli2ansible.domain.models import Event
 
@@ -97,12 +135,10 @@ def create_app(
 
     @app.post("/sessions/{session_id}/cast", response_model=CastUploadResponse)
     async def upload_cast_file(session_id: UUID, file: UploadFile) -> Any:
-        """Upload a .cast file to a session."""
+        """Upload a .cast file to a session and auto-compile."""
         # Validate file
         if not file.filename or not file.filename.endswith(".cast"):
-            raise HTTPException(
-                status_code=400, detail="File must have .cast extension"
-            )
+            raise HTTPException(status_code=400, detail="File must have .cast extension")
 
         # Read file data
         file_data = await file.read()
@@ -115,10 +151,30 @@ def create_app(
             )
 
         try:
+            # Delete old events and commands to avoid duplicates when re-uploading
+            ingest_service.repo.delete_events(session_id)
+            ingest_service.repo.delete_commands(session_id)
+
             # Upload and parse
-            events = ingest_service.upload_cast_file(
-                session_id, file_data, file.filename
+            events = ingest_service.upload_cast_file(session_id, file_data, file.filename)
+
+            # Save cast file record
+            cast_file = CastFile(
+                session_id=session_id,
+                file_name=file.filename,
+                file_size=len(file_data),
             )
+            ingest_service.repo.save_cast_file(cast_file)
+
+            # Auto-compile the session
+            try:
+                # Extract commands from events first
+                ingest_service.extract_commands(session_id)
+                # Compile to role and export artifact
+                role, report = compile_service.compile(session_id)
+                compile_service.export_artifact(role, session_id)
+            except Exception as e:
+                logger.warning(f"Auto-compile failed: {e}")  # Log but don't fail the upload
 
             return CastUploadResponse(
                 status="parsed",
@@ -167,16 +223,14 @@ def create_app(
         )
 
     @app.patch("/sessions/{session_id}/events", response_model=BatchEventUpdateResponse)
-    async def update_events_batch(
-        session_id: UUID, request: BatchEventUpdateRequest
-    ) -> Any:
+    async def update_events_batch(session_id: UUID, request: BatchEventUpdateRequest) -> Any:
         """Update multiple events in a batch."""
         session = ingest_service.repo.get(session_id)
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
 
         # Convert Pydantic models to dicts
-        updates = [update.dict() for update in request.updates]
+        updates = [update.model_dump() for update in request.updates]
 
         # Process batch update
         results = ingest_service.update_events_batch(session_id, updates)
@@ -207,9 +261,7 @@ def create_app(
                 )
             else:
                 formatted_results.append(
-                    EventUpdateResult(
-                        id=result["id"], status="error", error=result.get("error")
-                    )
+                    EventUpdateResult(id=result["id"], status="error", error=result.get("error"))
                 )
 
         # Return 207 if partial success, 200 if all succeeded
@@ -280,9 +332,19 @@ def create_app(
     @app.get("/sessions/{session_id}/report", response_model=ReportResponse)
     async def get_report(session_id: UUID) -> Any:
         """Get translation report for a session."""
+        from cli2ansible.adapters.inbound.http.schemas import MostCommonCommand
+
         session = compile_service.repo.get(session_id)
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
+
+        # Auto-extract commands if not already done
+        commands = compile_service.repo.get_commands(session_id)
+        if not commands:
+            events = compile_service.repo.get_events(session_id)
+            if events:
+                # Extract commands from events
+                commands = ingest_service.extract_commands(session_id)
 
         # Re-compile to get report (in production, cache this)
         role, report = compile_service.compile(session_id)
@@ -296,6 +358,16 @@ def create_app(
             warnings=report.warnings,
             skipped_commands=report.skipped_commands,
             generated_at=report.generated_at,
+            module_breakdown=report.module_breakdown,
+            high_confidence_percentage=report.high_confidence_percentage,
+            medium_confidence_percentage=report.medium_confidence_percentage,
+            low_confidence_percentage=report.low_confidence_percentage,
+            session_duration_seconds=report.session_duration_seconds,
+            most_common_commands=[
+                MostCommonCommand(command=cmd, count=count)
+                for cmd, count in report.most_common_commands
+            ],
+            sudo_command_count=report.sudo_command_count,
         )
 
     @app.get("/sessions/{session_id}/playbook")
@@ -307,14 +379,10 @@ def create_app(
             return StreamingResponse(
                 iter([data]),
                 media_type="application/zip",
-                headers={
-                    "Content-Disposition": f"attachment; filename=role_{session_id}.zip"
-                },
+                headers={"Content-Disposition": f"attachment; filename=role_{session_id}.zip"},
             )
         except Exception as e:
-            raise HTTPException(
-                status_code=404, detail=f"Artifact not found: {str(e)}"
-            ) from e
+            raise HTTPException(status_code=404, detail=f"Artifact not found: {str(e)}") from e
 
     @app.post("/sessions/{session_id}/clean", response_model=CleanSessionResponse)
     async def clean_session(session_id: UUID) -> Any:

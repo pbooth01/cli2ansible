@@ -55,6 +55,19 @@ services:
       - ./src:/app/src
     command: uvicorn cli2ansible.app:app --host 0.0.0.0 --port 8000
 
+  web:
+    build: ./web
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      - app
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+    command: npm run dev
+
 volumes:
   postgres_data:
   minio_data:
