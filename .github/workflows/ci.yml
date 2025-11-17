@@ -70,3 +70,33 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           override_branch: ${{ github.ref_name }}
           override_commit: ${{ github.sha }}
+
+  # Augment AI Code Review
+  augment-review:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Generate PR Review
+        uses: augmentcode/review-pr@v0
+        with:
+          augment_session_auth: ${{ secrets.AUGMENT_SESSION_AUTH }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pull_number: ${{ github.event.pull_request.number }}
+          repo_name: ${{ github.repository }}
+          custom_guidelines: |
+            - Leave individual inline comments on specific code issues, not just a summary
+            - Each issue should have its own comment anchored to the relevant line(s)
+            - Provide actionable feedback with code suggestions where appropriate
+          rules: |
+            [
+              ".augment/rules/architecture.md",
+              ".augment/rules/code-quality.md",
+              ".augment/rules/security.md",
+              ".augment/rules/testing.md",
+              ".augment/rules/documentation.md",
+              ".augment/rules/performance.md"
+            ]

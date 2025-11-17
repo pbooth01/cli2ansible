@@ -22,6 +22,7 @@
   },
 
   "agents": {
+    "prd": "prompts/agents/prd-agent.yaml",
     "test": "prompts/agents/test-agent.yaml",
     "security": "prompts/agents/security-agent.yaml",
     "refactor": "prompts/agents/refactor-agent.yaml",

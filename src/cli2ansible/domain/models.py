@@ -39,6 +39,17 @@ class Session:
 
 
 @dataclass
+class CastFile:
+    """Uploaded cast file for a session."""
+
+    session_id: UUID
+    file_name: str
+    file_size: int  # Size in bytes
+    id: UUID = field(default_factory=uuid4)
+    uploaded_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+
+
+@dataclass
 class Event:
     """Terminal event from recording."""
 
@@ -47,6 +58,8 @@ class Event:
     event_type: str
     data: str
     sequence: int = 0
+    id: UUID = field(default_factory=uuid4)
+    version: int = 1
 
 
 @dataclass
@@ -62,6 +75,7 @@ class Command:
     timestamp: float = 0.0
     exit_code: int | None = None
     output: str = ""
+    event_sequence: int = 0  # Track which event this command came from
 
 
 @dataclass
@@ -104,6 +118,13 @@ class Report:
     warnings: list[str] = field(default_factory=list)
     skipped_commands: list[str] = field(default_factory=list)
     generated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    module_breakdown: dict[str, int] = field(default_factory=dict)
+    high_confidence_percentage: float = 0.0
+    medium_confidence_percentage: float = 0.0
+    low_confidence_percentage: float = 0.0
+    session_duration_seconds: float = 0.0
+    most_common_commands: list[tuple[str, int]] = field(default_factory=list)
+    sudo_command_count: int = 0
 
 
 @dataclass

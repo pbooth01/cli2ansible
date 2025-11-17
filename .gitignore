@@ -60,6 +60,11 @@ dmypy.json
 .claude/cache/
 .claude/logs/
 
+# Augment
+.augment/memories/
+.augment/cache/
+.augment/logs/
+
 # Docker
 *.log
 

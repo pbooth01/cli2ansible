@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 from cli2ansible.domain.models import (
+    CastFile,
     CleanedCommand,
     CleaningReport,
     Command,
@@ -55,8 +56,28 @@ class SessionRepositoryPort(ABC):
         ...
 
     @abstractmethod
+    def list_all(self) -> list[Session]:
+        """List all sessions."""
+        ...
+
+    @abstractmethod
     def update(self, session: Session) -> Session:
         """Update session."""
+        ...
+
+    @abstractmethod
+    def delete(self, session_id: UUID) -> None:
+        """Delete a session and all related data."""
+        ...
+
+    @abstractmethod
+    def save_cast_file(self, cast_file: CastFile) -> CastFile:
+        """Save a cast file record for a session."""
+        ...
+
+    @abstractmethod
+    def get_cast_file(self, session_id: UUID) -> CastFile | None:
+        """Get the most recent cast file for a session."""
         ...
 
     @abstractmethod
@@ -79,14 +100,32 @@ class SessionRepositoryPort(ABC):
         """Get all commands for a session."""
         ...
 
+    @abstractmethod
+    def delete_events(self, session_id: UUID) -> None:
+        """Delete all events for a session."""
+        ...
+
+    @abstractmethod
+    def delete_commands(self, session_id: UUID) -> None:
+        """Delete all commands for a session."""
+        ...
+
+    @abstractmethod
+    def get_event_by_id(self, event_id: UUID) -> Event | None:
+        """Retrieve a single event by ID."""
+        ...
+
+    @abstractmethod
+    def update_event(self, event: Event) -> Event:
+        """Update an event (increments version)."""
+        ...
+
 
 class ObjectStorePort(ABC):
     """Port for artifact storage."""
 
     @abstractmethod
-    def upload(
-        self, key: str, data: bytes, content_type: str = "application/octet-stream"
-    ) -> str:
+    def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
         """Upload artifact and return URL."""
         ...
 

@@ -2,7 +2,7 @@
 
 import re
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from cli2ansible.domain.models import (
     CleanedCommand,
@@ -17,6 +17,7 @@ from cli2ansible.domain.models import (
     TaskConfidence,
 )
 from cli2ansible.domain.ports import (
+    CapturePort,
     LLMPort,
     ObjectStorePort,
     RoleGeneratorPort,
@@ -25,15 +26,26 @@ from cli2ansible.domain.ports import (
 )
 
 
+class VersionConflictError(Exception):
+    """Raised when an event update has a version conflict."""
+
+    pass
+
+
 class IngestSession:
     """Service for ingesting terminal sessions."""
 
-    def __init__(self, repo: SessionRepositoryPort) -> None:
+    def __init__(
+        self,
+        repo: SessionRepositoryPort,
+        parser: CapturePort | None = None,
+        store: ObjectStorePort | None = None,
+    ) -> None:
         self.repo = repo
+        self.parser = parser
+        self.store = store
 
-    def create_session(
-        self, name: str, metadata: dict[str, Any] | None = None
-    ) -> Session:
+    def create_session(self, name: str, metadata: dict[str, Any] | None = None) -> Session:
         """Create a new session."""
         session = Session(name=name, metadata=metadata or {})
         return self.repo.create(session)
@@ -62,7 +74,7 @@ class IngestSession:
                     lines = current_line.split("\n")
                     for line in lines[:-1]:
                         cmd = self._parse_command_line(
-                            line, session_id, event.timestamp
+                            line, session_id, event.timestamp, event.sequence
                         )
                         if cmd:
                             commands.append(cmd)
@@ -70,16 +82,16 @@ class IngestSession:
                 else:
                     # If there's no newline, treat each event as a potential command
                     cmd = self._parse_command_line(
-                        current_line, session_id, event.timestamp
+                        current_line, session_id, event.timestamp, event.sequence
                     )
                     if cmd:
                         commands.append(cmd)
                     current_line = ""
 
         # Process any remaining line
-        if current_line:
+        if current_line and events:
             cmd = self._parse_command_line(
-                current_line, session_id, events[-1].timestamp if events else 0.0
+                current_line, session_id, events[-1].timestamp, events[-1].sequence
             )
             if cmd:
                 commands.append(cmd)
@@ -88,7 +100,7 @@ class IngestSession:
         return commands
 
     def _parse_command_line(
-        self, line: str, session_id: UUID, timestamp: float
+        self, line: str, session_id: UUID, timestamp: float, event_sequence: int = 0
     ) -> Command | None:
         """Parse a line to extract command."""
         # Remove ANSI escape codes
@@ -110,7 +122,168 @@ class IngestSession:
             normalized=line.strip(),
             sudo=sudo,
             timestamp=timestamp,
+            event_sequence=event_sequence,
         )
+
+    def upload_cast_file(self, session_id: UUID, file_data: bytes, filename: str) -> list[Event]:
+        """
+        Upload .cast file, store in MinIO, parse, and save events.
+
+        Returns parsed events with IDs and versions.
+
+        Raises:
+            ValueError: If session not found or file invalid
+        """
+        if not self.parser:
+            raise ValueError("Parser not configured")
+        if not self.store:
+            raise ValueError("Object store not configured")
+
+        # 1. Validate session exists
+        session = self.repo.get(session_id)
+        if not session:
+            raise ValueError(f"Session {session_id} not found")
+
+        # 2. Validate file size
+        if len(file_data) > 10 * 1024 * 1024:  # 10MB
+            raise ValueError("File size exceeds maximum (10MB)")
+
+        # 3. Parse file to validate format
+        try:
+            events = self.parser.parse_events(file_data)
+        except Exception as e:
+            raise ValueError(f"Invalid .cast file format: {e}") from e
+
+        # 4. Store file in MinIO
+        key = f"sessions/{session_id}/recording.cast"
+        self.store.upload(key, file_data, "application/json")
+
+        # 5. Assign event IDs and versions
+        for event in events:
+            event.id = uuid4()
+            event.session_id = session_id
+            event.version = 1
+
+        # 6. Save events to database
+        self.repo.save_events(events)
+
+        # 7. Update session metadata and status
+        session.metadata["cast_file_key"] = key
+        session.metadata["cast_filename"] = filename
+        session.status = SessionStatus.UPLOADED
+        self.repo.update(session)
+
+        return events
+
+    def update_events_batch(
+        self, session_id: UUID, updates: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """
+        Update multiple events in a batch with partial success support.
+
+        Returns list of results with status for each update.
+        Each result: {"id": UUID, "status": "success"|"error", "event": Event | None, "error": str | None}
+
+        Note: Uses individual transactions per event to enable partial success.
+        """
+        results = []
+
+        for update_spec in updates:
+            event_id = UUID(update_spec["id"])
+            expected_version = update_spec["version"]
+
+            try:
+                event = self.repo.get_event_by_id(event_id)
+                if not event:
+                    results.append(
+                        {
+                            "id": str(event_id),
+                            "status": "error",
+                            "error": f"Event {event_id} not found",
+                        }
+                    )
+                    continue
+
+                if event.session_id != session_id:
+                    results.append(
+                        {
+                            "id": str(event_id),
+                            "status": "error",
+                            "error": "Event does not belong to this session",
+                        }
+                    )
+                    continue
+
+                if event.version != expected_version:
+                    results.append(
+                        {
+                            "id": str(event_id),
+                            "status": "error",
+                            "error": f"Version conflict: expected {expected_version}, current is {event.version}",
+                        }
+                    )
+                    continue
+
+                # Apply updates
+                for key, value in update_spec.items():
+                    if key in ("timestamp", "data", "event_type"):
+                        setattr(event, key, value)
+
+                # Increment version
+                event.version += 1
+
+                # Save
+                updated_event = self.repo.update_event(event)
+
+                results.append(
+                    {
+                        "id": str(event_id),
+                        "status": "success",
+                        "event": updated_event,  # type: ignore[dict-item]
+                    }
+                )
+
+            except Exception as e:
+                results.append({"id": str(event_id), "status": "error", "error": str(e)})
+
+        return results
+
+    def update_event(
+        self,
+        session_id: UUID,
+        event_id: UUID,
+        updates: dict[str, Any],
+        expected_version: int,
+    ) -> Event:
+        """
+        Update a single event with optimistic locking (convenience method).
+
+        Raises:
+            ValueError: If event not found
+            VersionConflictError: If version mismatch
+        """
+        event = self.repo.get_event_by_id(event_id)
+        if not event:
+            raise ValueError(f"Event {event_id} not found")
+
+        if event.session_id != session_id:
+            raise ValueError("Event does not belong to this session")
+
+        if event.version != expected_version:
+            raise VersionConflictError(
+                f"Version conflict: expected {expected_version}, " f"current is {event.version}"
+            )
+
+        # Apply updates
+        for key, value in updates.items():
+            if key in ("timestamp", "data", "event_type"):
+                setattr(event, key, value)
+
+        # Increment version
+        event.version += 1
+
+        # Save
+        return self.repo.update_event(event)
 
 
 class CompilePlaybook:
@@ -130,6 +303,8 @@ class CompilePlaybook:
 
     def compile(self, session_id: UUID) -> tuple[Role, Report]:
         """Compile session commands into an Ansible role."""
+        from collections import Counter
+
         session = self.repo.get(session_id)
         if not session:
             raise ValueError(f"Session {session_id} not found")
@@ -141,6 +316,9 @@ class CompilePlaybook:
         tasks: list[Task] = []
         report = Report(session_id=session_id, total_commands=len(commands))
 
+        # Track module usage
+        module_counts: dict[str, int] = {}
+
         for command in commands:
             task = self.translator.translate(command)
             if task:
@@ -151,8 +329,36 @@ class CompilePlaybook:
                     report.medium_confidence += 1
                 else:
                     report.low_confidence += 1
+
+                # Track module usage
+                module_counts[task.module] = module_counts.get(task.module, 0) + 1
             else:
                 report.skipped_commands.append(command.raw)
+
+        # Calculate percentages
+        if report.total_commands > 0:
+            report.high_confidence_percentage = (
+                report.high_confidence / report.total_commands
+            ) * 100
+            report.medium_confidence_percentage = (
+                report.medium_confidence / report.total_commands
+            ) * 100
+            report.low_confidence_percentage = (report.low_confidence / report.total_commands) * 100
+
+        # Calculate session duration
+        if commands:
+            timestamps = [cmd.timestamp for cmd in commands]
+            report.session_duration_seconds = max(timestamps) - min(timestamps)
+
+        # Calculate most common commands (top 5)
+        command_counter = Counter(cmd.normalized for cmd in commands)
+        report.most_common_commands = command_counter.most_common(5)
+
+        # Count sudo commands
+        report.sudo_command_count = sum(1 for cmd in commands if cmd.sudo)
+
+        # Set module breakdown
+        report.module_breakdown = module_counts
 
         role = Role(name=session.name or f"role_{session_id}", tasks=tasks)
 
@@ -195,9 +401,7 @@ class CleanSession:
         self.repo = repo
         self.llm = llm
 
-    def clean_commands(
-        self, session_id: UUID
-    ) -> tuple[list[CleanedCommand], CleaningReport]:
+    def clean_commands(self, session_id: UUID) -> tuple[list[CleanedCommand], CleaningReport]:
         """
         Clean terminal session by removing duplicates and error corrections.
 

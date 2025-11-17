@@ -21,6 +21,7 @@ See [registry.yaml](registry.yaml) for the complete list.
 | **SecurityAgent** | Security code review | Changes to auth, secrets, network, data handling |
 | **RefactorAgent** | Code refactoring suggestions | Improving code structure, reducing complexity |
 | **DocumentationAgent** | Generate/update docs | New features, API changes, architecture decisions |
+| **PRDAgent** | Generate Product Requirements Documents | Planning new features, clarifying requirements |
 
 ## Directory Structure
 
@@ -32,7 +33,8 @@ prompts/
 │   ├── test-agent.yaml
 │   ├── security-agent.yaml
 │   ├── refactor-agent.yaml
-│   └── documentation-agent.yaml
+│   ├── documentation-agent.yaml
+│   └── prd-agent.yaml
 └── snippets/              # Reusable prompt snippets
     ├── unit-test-harness.md
     ├── threat-model-checklist.md
