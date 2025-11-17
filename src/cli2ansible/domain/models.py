@@ -35,8 +35,18 @@ class Session:
     status: SessionStatus = SessionStatus.CREATED
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
-    duration: float = 0.0
     metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class CastFile:
+    """Uploaded cast file for a session."""
+
+    session_id: UUID
+    file_name: str
+    file_size: int  # Size in bytes
+    id: UUID = field(default_factory=uuid4)
+    uploaded_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 @dataclass
@@ -65,6 +75,7 @@ class Command:
     timestamp: float = 0.0
     exit_code: int | None = None
     output: str = ""
+    event_sequence: int = 0  # Track which event this command came from
 
 
 @dataclass

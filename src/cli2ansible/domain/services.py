@@ -45,9 +45,7 @@ class IngestSession:
         self.parser = parser
         self.store = store
 
-    def create_session(
-        self, name: str, metadata: dict[str, Any] | None = None
-    ) -> Session:
+    def create_session(self, name: str, metadata: dict[str, Any] | None = None) -> Session:
         """Create a new session."""
         session = Session(name=name, metadata=metadata or {})
         return self.repo.create(session)
@@ -76,7 +74,7 @@ class IngestSession:
                     lines = current_line.split("\n")
                     for line in lines[:-1]:
                         cmd = self._parse_command_line(
-                            line, session_id, event.timestamp
+                            line, session_id, event.timestamp, event.sequence
                         )
                         if cmd:
                             commands.append(cmd)
@@ -84,16 +82,16 @@ class IngestSession:
                 else:
                     # If there's no newline, treat each event as a potential command
                     cmd = self._parse_command_line(
-                        current_line, session_id, event.timestamp
+                        current_line, session_id, event.timestamp, event.sequence
                     )
                     if cmd:
                         commands.append(cmd)
                     current_line = ""
 
         # Process any remaining line
-        if current_line:
+        if current_line and events:
             cmd = self._parse_command_line(
-                current_line, session_id, events[-1].timestamp if events else 0.0
+                current_line, session_id, events[-1].timestamp, events[-1].sequence
             )
             if cmd:
                 commands.append(cmd)
@@ -102,7 +100,7 @@ class IngestSession:
         return commands
 
     def _parse_command_line(
-        self, line: str, session_id: UUID, timestamp: float
+        self, line: str, session_id: UUID, timestamp: float, event_sequence: int = 0
     ) -> Command | None:
         """Parse a line to extract command."""
         # Remove ANSI escape codes
@@ -124,11 +122,10 @@ class IngestSession:
             normalized=line.strip(),
             sudo=sudo,
             timestamp=timestamp,
+            event_sequence=event_sequence,
         )
 
-    def upload_cast_file(
-        self, session_id: UUID, file_data: bytes, filename: str
-    ) -> list[Event]:
+    def upload_cast_file(self, session_id: UUID, file_data: bytes, filename: str) -> list[Event]:
         """
         Upload .cast file, store in MinIO, parse, and save events.
 
@@ -247,9 +244,7 @@ class IngestSession:
                 )
 
             except Exception as e:
-                results.append(
-                    {"id": str(event_id), "status": "error", "error": str(e)}
-                )
+                results.append({"id": str(event_id), "status": "error", "error": str(e)})
 
         return results
 
@@ -276,8 +271,7 @@ class IngestSession:
 
         if event.version != expected_version:
             raise VersionConflictError(
-                f"Version conflict: expected {expected_version}, "
-                f"current is {event.version}"
+                f"Version conflict: expected {expected_version}, " f"current is {event.version}"
             )
 
         # Apply updates
@@ -343,8 +337,12 @@ class CompilePlaybook:
 
         # Calculate percentages
         if report.total_commands > 0:
-            report.high_confidence_percentage = (report.high_confidence / report.total_commands) * 100
-            report.medium_confidence_percentage = (report.medium_confidence / report.total_commands) * 100
+            report.high_confidence_percentage = (
+                report.high_confidence / report.total_commands
+            ) * 100
+            report.medium_confidence_percentage = (
+                report.medium_confidence / report.total_commands
+            ) * 100
             report.low_confidence_percentage = (report.low_confidence / report.total_commands) * 100
 
         # Calculate session duration
@@ -403,9 +401,7 @@ class CleanSession:
         self.repo = repo
         self.llm = llm
 
-    def clean_commands(
-        self, session_id: UUID
-    ) -> tuple[list[CleanedCommand], CleaningReport]:
+    def clean_commands(self, session_id: UUID) -> tuple[list[CleanedCommand], CleaningReport]:
         """
         Clean terminal session by removing duplicates and error corrections.
 

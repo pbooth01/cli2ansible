@@ -14,6 +14,16 @@ class SessionCreate(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class CastFileResponse(BaseModel):
+    """Response schema for cast file."""
+
+    id: UUID
+    session_id: UUID
+    file_name: str
+    file_size: int
+    uploaded_at: datetime
+
+
 class SessionResponse(BaseModel):
     """Response schema for session."""
 
@@ -22,8 +32,8 @@ class SessionResponse(BaseModel):
     status: str
     created_at: datetime
     updated_at: datetime
-    duration: float
     metadata: dict[str, Any]
+    cast_file: CastFileResponse | None = None
 
 
 class EventCreate(BaseModel):
@@ -63,7 +73,6 @@ class ReportResponse(BaseModel):
     high_confidence_percentage: float
     medium_confidence_percentage: float
     low_confidence_percentage: float
-    session_duration_seconds: float
     most_common_commands: list[MostCommonCommand]
     sudo_command_count: int
 

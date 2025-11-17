@@ -3,6 +3,7 @@
 from typing import Any
 from uuid import UUID
 
+from cli2ansible.domain.models import CastFile
 from cli2ansible.domain.services import (
     CleanSession,
     CompilePlaybook,
@@ -10,12 +11,14 @@ from cli2ansible.domain.services import (
     VersionConflictError,
 )
 from fastapi import FastAPI, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from .schemas import (
     ArtifactResponse,
     BatchEventUpdateRequest,
     BatchEventUpdateResponse,
+    CastFileResponse,
     CastUploadResponse,
     CleanedCommandResponse,
     CleaningReportResponse,
@@ -40,6 +43,36 @@ def create_app(
     """Create FastAPI application."""
     app = FastAPI(title="cli2ansible", version="0.1.0")
 
+    # Add CORS middleware to allow requests from the frontend
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # Allow all origins for development
+        allow_credentials=True,
+        allow_methods=["*"],  # Allow all methods including DELETE
+        allow_headers=["*"],
+    )
+
+    def session_to_response(session: Any, cast_file: CastFile | None = None) -> SessionResponse:
+        """Convert session domain model to API response with optional cast file."""
+        cast_file_response = None
+        if cast_file:
+            cast_file_response = CastFileResponse(
+                id=cast_file.id,
+                session_id=cast_file.session_id,
+                file_name=cast_file.file_name,
+                file_size=cast_file.file_size,
+                uploaded_at=cast_file.uploaded_at,
+            )
+        return SessionResponse(
+            id=session.id,
+            name=session.name,
+            status=session.status.value,
+            created_at=session.created_at,
+            updated_at=session.updated_at,
+            metadata=session.metadata,
+            cast_file=cast_file_response,
+        )
+
     @app.get("/")
     async def root() -> dict[str, str]:
         """Health check endpoint."""
@@ -49,33 +82,35 @@ def create_app(
     async def create_session(session: SessionCreate) -> Any:
         """Create a new session."""
         domain_session = ingest_service.create_session(name=session.name, metadata=session.metadata)
-        return SessionResponse(
-            id=domain_session.id,
-            name=domain_session.name,
-            status=domain_session.status.value,
-            created_at=domain_session.created_at,
-            updated_at=domain_session.updated_at,
-            duration=domain_session.duration,
-            metadata=domain_session.metadata,
-        )
+        return session_to_response(domain_session)
+
+    @app.get("/sessions")
+    async def list_sessions() -> dict[str, list[SessionResponse]]:
+        """List all sessions."""
+        sessions = ingest_service.repo.list_all()
+        return {
+            "sessions": [
+                session_to_response(s, ingest_service.repo.get_cast_file(s.id)) for s in sessions
+            ]
+        }
 
     @app.get("/sessions/{session_id}", response_model=SessionResponse)
     async def get_session(session_id: UUID) -> Any:
         """Get session by ID."""
         session = ingest_service.repo.get(session_id)
-        a = 1 / 0
-        print(a)
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
-        return SessionResponse(
-            id=session.id,
-            name=session.name,
-            status=session.status.value,
-            created_at=session.created_at,
-            updated_at=session.updated_at,
-            duration=session.duration,
-            metadata=session.metadata,
-        )
+        cast_file = ingest_service.repo.get_cast_file(session_id)
+        return session_to_response(session, cast_file)
+
+    @app.delete("/sessions/{session_id}")
+    async def delete_session(session_id: UUID) -> dict[str, str]:
+        """Delete a session and all related data."""
+        session = ingest_service.repo.get(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        ingest_service.repo.delete(session_id)
+        return {"message": "Session deleted successfully"}
 
     @app.post("/sessions/{session_id}/events")
     async def upload_events(session_id: UUID, events: list[EventCreate]) -> dict[str, str]:
@@ -97,7 +132,7 @@ def create_app(
 
     @app.post("/sessions/{session_id}/cast", response_model=CastUploadResponse)
     async def upload_cast_file(session_id: UUID, file: UploadFile) -> Any:
-        """Upload a .cast file to a session."""
+        """Upload a .cast file to a session and auto-compile."""
         # Validate file
         if not file.filename or not file.filename.endswith(".cast"):
             raise HTTPException(status_code=400, detail="File must have .cast extension")
@@ -113,8 +148,30 @@ def create_app(
             )
 
         try:
+            # Delete old events and commands to avoid duplicates when re-uploading
+            ingest_service.repo.delete_events(session_id)
+            ingest_service.repo.delete_commands(session_id)
+
             # Upload and parse
             events = ingest_service.upload_cast_file(session_id, file_data, file.filename)
+
+            # Save cast file record
+            cast_file = CastFile(
+                session_id=session_id,
+                file_name=file.filename,
+                file_size=len(file_data),
+            )
+            ingest_service.repo.save_cast_file(cast_file)
+
+            # Auto-compile the session
+            try:
+                # Extract commands from events first
+                ingest_service.extract_commands(session_id)
+                # Compile to role and export artifact
+                role, report = compile_service.compile(session_id)
+                compile_service.export_artifact(role, session_id)
+            except Exception as e:
+                print(f"Auto-compile failed: {e}")  # Log but don't fail the upload
 
             return CastUploadResponse(
                 status="parsed",
