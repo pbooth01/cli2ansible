@@ -16,11 +16,20 @@ class Settings(BaseSettings):
         default="postgresql+psycopg://postgres:postgres@localhost:5432/cli2ansible"
     )
 
+    # Object Storage Provider Selection
+    storage_provider: Literal["s3", "azure"] = Field(default="s3")
+
     # Object Storage (S3/MinIO)
     s3_endpoint: str = Field(default="http://localhost:9000")
     s3_access_key: str = Field(default="minioadmin")
     s3_secret_key: str = Field(default="minioadmin")
     s3_bucket: str = Field(default="cli2ansible-artifacts")
+
+    # Object Storage (Azure Blob Storage)
+    azure_connection_string: str = Field(default="")
+    azure_container: str = Field(default="cli2ansible-artifacts")
+    azure_account_name: str = Field(default="")
+    azure_account_key: str = Field(default="")
 
     # Application
     log_level: str = Field(default="INFO")

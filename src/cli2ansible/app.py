@@ -6,15 +6,16 @@ from cli2ansible.adapters.outbound.db.repository import SQLAlchemyRepository
 from cli2ansible.adapters.outbound.generators.ansible_role import AnsibleRoleGenerator
 from cli2ansible.adapters.outbound.llm.anthropic_cleaner import AnthropicCleaner
 from cli2ansible.adapters.outbound.llm.openai_cleaner import OpenAICleaner
+from cli2ansible.adapters.outbound.object_store.azure_blob_store import AzureBlobStore
 from cli2ansible.adapters.outbound.object_store.s3_store import S3ObjectStore
 from cli2ansible.adapters.outbound.translator.rules_engine import RulesEngine
-from cli2ansible.domain.ports import LLMPort
+from cli2ansible.domain.ports import LLMPort, ObjectStorePort
 from cli2ansible.domain.services import CleanSession, CompilePlaybook, IngestSession
 from cli2ansible.settings import settings
 
 # Global instances (for dependency injection)
 _repository: SQLAlchemyRepository | None = None
-_object_store: S3ObjectStore | None = None
+_object_store: ObjectStorePort | None = None
 _llm_cleaner: LLMPort | None = None
 
 
@@ -27,16 +28,31 @@ def get_repository() -> SQLAlchemyRepository:
     return _repository
 
 
-def get_object_store() -> S3ObjectStore:
-    """Get or create object store instance."""
+def get_object_store() -> ObjectStorePort:
+    """Get or create object store instance based on configured provider."""
     global _object_store
     if _object_store is None:
-        _object_store = S3ObjectStore(
-            endpoint=settings.s3_endpoint,
-            access_key=settings.s3_access_key,
-            secret_key=settings.s3_secret_key,
-            bucket=settings.s3_bucket,
-        )
+        provider = settings.storage_provider.lower()
+
+        if provider == "s3":
+            _object_store = S3ObjectStore(
+                endpoint=settings.s3_endpoint,
+                access_key=settings.s3_access_key,
+                secret_key=settings.s3_secret_key,
+                bucket=settings.s3_bucket,
+            )
+        elif provider == "azure":
+            if not settings.azure_connection_string:
+                raise ValueError("AZURE_CONNECTION_STRING not configured")
+            _object_store = AzureBlobStore(
+                connection_string=settings.azure_connection_string,
+                container=settings.azure_container,
+                account_name=settings.azure_account_name or None,
+                account_key=settings.azure_account_key or None,
+            )
+        else:
+            raise ValueError(f"Unknown storage provider: {provider}. Must be 's3' or 'azure'")
+
     return _object_store
 
 

@@ -89,6 +89,67 @@ cli2ansible/
 └── pyproject.toml           # Python dependencies
 ```
 
+## ⚙️ Configuration
+
+### Environment Variables
+
+The application can be configured using environment variables or a `.env` file:
+
+#### Database
+- `DATABASE_URL`: PostgreSQL connection string (default: `postgresql+psycopg://postgres:postgres@localhost:5432/cli2ansible`)
+
+#### Object Storage
+
+The application supports both **S3/MinIO** and **Azure Blob Storage** for storing cast files and artifacts.
+
+**Storage Provider Selection:**
+- `STORAGE_PROVIDER`: Choose storage backend - `s3` (default) or `azure`
+
+**S3/MinIO Configuration** (when `STORAGE_PROVIDER=s3`):
+- `S3_ENDPOINT`: S3-compatible endpoint URL (default: `http://localhost:9000`)
+- `S3_ACCESS_KEY`: S3 access key (default: `minioadmin`)
+- `S3_SECRET_KEY`: S3 secret key (default: `minioadmin`)
+- `S3_BUCKET`: S3 bucket name (default: `cli2ansible-artifacts`)
+
+**Azure Blob Storage Configuration** (when `STORAGE_PROVIDER=azure`):
+- `AZURE_CONNECTION_STRING`: Azure Storage connection string (required)
+- `AZURE_CONTAINER`: Container name (default: `cli2ansible-artifacts`)
+- `AZURE_ACCOUNT_NAME`: Storage account name (optional, for SAS URL generation)
+- `AZURE_ACCOUNT_KEY`: Storage account key (optional, for SAS URL generation)
+
+#### LLM Configuration (Optional)
+- `LLM_PROVIDER`: Choose LLM provider - `anthropic` (default) or `openai`
+- `ANTHROPIC_API_KEY`: Anthropic API key for Claude (optional)
+- `OPENAI_API_KEY`: OpenAI API key (optional)
+- `MAX_COMMANDS_FOR_CLEANING`: Maximum commands to send to LLM (default: 500)
+
+#### Application
+- `LOG_LEVEL`: Logging level (default: `INFO`)
+- `DEBUG`: Enable debug mode (default: `false`)
+
+### Example: Using Azure Blob Storage
+
+```bash
+# Set environment variables
+export STORAGE_PROVIDER=azure
+export AZURE_CONNECTION_STRING="DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=mykey;EndpointSuffix=core.windows.net"
+export AZURE_CONTAINER=cli2ansible-artifacts
+export AZURE_ACCOUNT_NAME=myaccount
+export AZURE_ACCOUNT_KEY=mykey
+
+# Or create a .env file
+cat > .env << EOF
+STORAGE_PROVIDER=azure
+AZURE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=mykey;EndpointSuffix=core.windows.net
+AZURE_CONTAINER=cli2ansible-artifacts
+AZURE_ACCOUNT_NAME=myaccount
+AZURE_ACCOUNT_KEY=mykey
+EOF
+
+# Start the application
+poetry run uvicorn cli2ansible.app:app --reload
+```
+
 ## 🧪 Testing
 
 ```bash
