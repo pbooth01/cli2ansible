@@ -73,6 +73,7 @@ class ReportResponse(BaseModel):
     high_confidence_percentage: float
     medium_confidence_percentage: float
     low_confidence_percentage: float
+    session_duration_seconds: float
     most_common_commands: list[MostCommonCommand]
     sudo_command_count: int
 
