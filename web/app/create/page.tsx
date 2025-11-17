@@ -43,7 +43,13 @@ export default function CreatePage() {
     try {
       let metadata = {}
       if (formData.metadata.trim()) {
-        metadata = JSON.parse(formData.metadata)
+        try {
+          metadata = JSON.parse(formData.metadata)
+        } catch (error) {
+          setCreateError('Invalid JSON in metadata field')
+          setCreateLoading(false)
+          return
+        }
       }
 
       const session = await createSession(formData.name, metadata)

@@ -199,17 +199,12 @@ export default function SessionDetailsPage() {
   const handleDelete = async () => {
     if (!sessionId) return
 
-    console.log('Starting delete for session:', sessionId)
-
     try {
       setDeleteLoading(true)
       setDeleteError(null)
-      console.log('Calling deleteSession API...')
       await deleteSession(sessionId)
-      console.log('Delete successful, redirecting...')
       // Delay slightly before redirect to allow UI to update
       setTimeout(() => {
-        console.log('Redirecting to /sessions')
         router.push('/sessions')
       }, 500)
     } catch (err) {

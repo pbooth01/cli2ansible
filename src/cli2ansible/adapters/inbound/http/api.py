@@ -1,5 +1,6 @@
 """FastAPI HTTP adapter."""
 
+import logging
 from typing import Any
 from uuid import UUID
 
@@ -33,6 +34,8 @@ from .schemas import (
     SessionCreate,
     SessionResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def create_app(
@@ -171,7 +174,7 @@ def create_app(
                 role, report = compile_service.compile(session_id)
                 compile_service.export_artifact(role, session_id)
             except Exception as e:
-                print(f"Auto-compile failed: {e}")  # Log but don't fail the upload
+                logger.warning(f"Auto-compile failed: {e}")  # Log but don't fail the upload
 
             return CastUploadResponse(
                 status="parsed",
@@ -227,7 +230,7 @@ def create_app(
             raise HTTPException(status_code=404, detail="Session not found")
 
         # Convert Pydantic models to dicts
-        updates = [update.dict() for update in request.updates]
+        updates = [update.model_dump() for update in request.updates]
 
         # Process batch update
         results = ingest_service.update_events_batch(session_id, updates)

@@ -347,35 +347,3 @@ def test_compile_report_handles_commands_with_zero_timestamps(
     assert report.session_duration_seconds == 0.0
     # But commands should still be processed
     assert report.total_commands == 2
-
-
-def test_compile_report_counts_(
-    ingest_service: IngestSession,
-    compile_service: CompilePlaybook,
-    repo: SQLAlchemyRepository,
-) -> None:
-    # Create session
-    session = ingest_service.create_session("test-session")
-
-    # Create commands with zero timestamps
-    commands = [
-        Command(
-            session_id=session.id,
-            raw="apt-get update",
-            normalized="apt-get update",
-            timestamp=0.0,  # Zero timestamp
-        ),
-        Command(
-            session_id=session.id,
-            raw="apt-get install nginx",
-            normalized="apt-get install nginx",
-            timestamp=0.0,  # Zero timestamp
-        ),
-    ]
-
-    repo.save_commands(commands)
-
-    # Compile and get report
-    role, report = compile_service.compile(session.id)
-
-    assert report.total_commands == 2
