@@ -54,22 +54,3 @@ snippets:
     description: Template for documenting REST APIs
     path: prompts/snippets/api-documentation-template.md
     tags: [documentation, api]
-
-  - id: prd-template
-    name: PRD Template
-    description: Product Requirements Document template
-    path: docs/prds/TEMPLATE.md
-    tags: [planning, product]
-
-conventions:
-  - id: code-style
-    name: General Code Style
-    path: docs/conventions/CODE_STYLE.md
-
-  - id: python-style
-    name: Python Conventions
-    path: docs/conventions/python.md
-
-  - id: api-style
-    name: Backend API Conventions
-    path: docs/conventions/backend_api.md

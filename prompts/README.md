@@ -1,10 +1,10 @@
-# Claude Code Agent Prompts
+# Augment Code Agent Prompts
 
-This directory contains structured prompts and agent definitions for use with Claude Code to automate common development tasks.
+This directory contains structured prompts and agent definitions for use with Augment Code to automate common development tasks.
 
 ## Quick Start
 
-### Using an agent in Claude Code
+### Using an agent in Augment Code
 
 ```text
 Load prompts/agents/test-agent.yaml
@@ -110,7 +110,7 @@ Agents can be invoked in CI pipelines:
 1. Copy an existing agent YAML as a template
 2. Customize the role, inputs, policies, and checklist
 3. Register it in `registry.yaml`
-4. Test with sample inputs in Claude Code
+4. Test with sample inputs in Augment Code
 5. Document usage examples in this README
 
 ## Best Practices

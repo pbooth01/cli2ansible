@@ -118,7 +118,7 @@ Repeat the same settings for `main` branch, but with PRs from `release`:
 - ⚠️ Setting approvals to 0 allows code to merge without human review
 - 💡 Recommended: Keep approvals at 1 for production repositories
 - 🔒 Include administrators in restrictions for consistency
-- 🤖 Auto-merge is useful for trusted automated workflows (e.g., Claude Code)
+- 🤖 Auto-merge is useful for trusted automated workflows (e.g., Augment Code)
 
 ## Alternative: Manual Auto-merge
 

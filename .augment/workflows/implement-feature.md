@@ -14,12 +14,6 @@ This workflow guides Augment Agent through:
 
 ## Usage
 
-### With Existing PRD
-
-```
-Implement the feature described in docs/prds/<feature-name>.md
-```
-
 ### With Feature Description
 
 ```
@@ -207,7 +201,6 @@ Hexagonal (ports & adapters):
 - **Adapters Outbound**: Database, S3, translators
 
 ### Conventions
-- Follow `docs/conventions/CODE_STYLE.md`
 - Use type hints everywhere
 - Write docstrings for public APIs
 - Keep functions small and focused

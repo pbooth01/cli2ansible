@@ -265,5 +265,4 @@ When adding new workflows or updating configuration:
 ## Resources
 
 - [Augment Documentation](https://docs.augmentcode.com)
-- [Project Conventions](../docs/conventions/)
 - [GitHub Workflows](../.github/workflows/)

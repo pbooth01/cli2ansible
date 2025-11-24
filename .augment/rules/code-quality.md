@@ -7,7 +7,7 @@ These rules ensure code quality, maintainability, and adherence to project conve
 
 ### 1. Follow Project Coding Conventions
 - **Severity**: Warning
-- **Description**: All code must follow the conventions defined in `docs/conventions/CODE_STYLE.md`
+- **Description**: All code must follow the project coding conventions
 - **Check for**:
   - Consistent naming conventions (snake_case for functions/variables, PascalCase for classes)
   - Proper module organization

@@ -187,7 +187,6 @@ class Report:
 
 ### User Documentation
 - README.md for getting started
-- docs/ folder for detailed guides
 - Architecture documentation
 
 ### Developer Documentation
