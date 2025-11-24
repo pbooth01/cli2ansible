@@ -4,7 +4,7 @@ import json
 import re
 from uuid import UUID
 
-from cli2ansible.domain.models import Event
+from cli2ansible.domain.entities import Event
 from cli2ansible.domain.ports import CapturePort
 
 # ANSI escape sequence pattern
@@ -46,9 +46,7 @@ def apply_edit(buf: str, ch: str) -> str:
 class AsciinemaParser(CapturePort):
     """Parse asciinema .cast files into Event objects."""
 
-    def parse_events(
-        self, recording_data: bytes, max_events: int = 100_000
-    ) -> list[Event]:
+    def parse_events(self, recording_data: bytes, max_events: int = 100_000) -> list[Event]:
         """
         Parse asciinema .cast file format into Event objects.
 
@@ -163,11 +161,7 @@ class AsciinemaParser(CapturePort):
                     enter_time = t
                     for j in range(i - 1, -1, -1):
                         prev_event = all_events[j]
-                        if (
-                            len(prev_event) >= 3
-                            and prev_event[1] == "i"
-                            and prev_event[2] == "\r"
-                        ):
+                        if len(prev_event) >= 3 and prev_event[1] == "i" and prev_event[2] == "\r":
                             enter_time = prev_event[0]
                             break
 

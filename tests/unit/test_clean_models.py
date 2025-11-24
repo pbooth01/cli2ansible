@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from cli2ansible.domain.models import CleanedCommand, CleaningReport
+from cli2ansible.domain.entities import CleanedCommand, CleaningReport
 
 
 def test_cleaned_command_creation() -> None:

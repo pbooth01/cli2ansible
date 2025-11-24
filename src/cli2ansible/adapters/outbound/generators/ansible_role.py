@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from cli2ansible.domain.models import Role
+from cli2ansible.domain.entities import Role
 from cli2ansible.domain.ports import RoleGeneratorPort
 
 
@@ -126,7 +126,9 @@ This role contains {len(role.tasks)} tasks:
 
 """
         for i, task in enumerate(role.tasks, 1):
-            content += f"{i}. {task.name} (module: `{task.module}`, confidence: {task.confidence.value})\n"
+            content += (
+                f"{i}. {task.name} (module: `{task.module}`, confidence: {task.confidence.value})\n"
+            )
 
         content += (
             """
@@ -178,9 +180,7 @@ molecule test
             {
                 "name": "Converge",
                 "hosts": "all",
-                "tasks": [
-                    {"name": "Include role", "include_role": {"name": role.name}}
-                ],
+                "tasks": [{"name": "Include role", "include_role": {"name": role.name}}],
             }
         ]
         with open(default_dir / "converge.yml", "w") as f:

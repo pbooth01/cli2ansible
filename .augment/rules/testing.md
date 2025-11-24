@@ -1,3 +1,7 @@
+---
+type: "manual"
+---
+
 # Testing Rules
 
 ## Overview

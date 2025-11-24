@@ -3,7 +3,7 @@
 import re
 from typing import Any
 
-from cli2ansible.domain.models import Command, Task, TaskConfidence
+from cli2ansible.domain.entities import Command, Task, TaskConfidence
 from cli2ansible.domain.ports import TranslatorPort
 
 

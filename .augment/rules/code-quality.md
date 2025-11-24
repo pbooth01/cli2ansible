@@ -1,3 +1,7 @@
+---
+type: "always_apply"
+---
+
 # Code Quality Rules
 
 ## Overview
@@ -81,32 +85,3 @@ def process_command(
 ) -> CommandResult:
     ...
 ```
-
-### 6. No Unnecessary Complexity
-- **Severity**: Warning
-- **Description**: Keep code simple and readable
-- **Avoid**:
-  - Overly clever one-liners
-  - Unnecessary abstractions
-  - Premature optimization
-  - Complex nested comprehensions
-  - Multiple operations in one line
-
-**Example - Bad**:
-```python
-result = [x for sublist in [y.split(',') for y in data if y] for x in sublist if x.strip()]
-```
-
-**Example - Good**:
-```python
-result = []
-for line in data:
-    if line:
-        parts = line.split(',')
-        result.extend(part.strip() for part in parts if part.strip())
-```
-
-## Enforcement
-- These rules are checked on every PR
-- Violations generate warnings in the review
-- Multiple violations may block merge

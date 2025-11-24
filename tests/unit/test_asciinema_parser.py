@@ -4,7 +4,7 @@ from uuid import UUID
 
 import pytest
 from cli2ansible.adapters.outbound.capture.asciinema_parser import AsciinemaParser
-from cli2ansible.domain.models import Event
+from cli2ansible.domain.entities import Event
 
 
 class TestAsciinemaParser:
@@ -113,9 +113,7 @@ class TestAsciinemaParser:
         cast_data = b'{"width":80,"height":24}\n[0.0,"o","test"]'
 
         # Act & Assert
-        with pytest.raises(
-            ValueError, match="Unsupported asciinema format version: None"
-        ):
+        with pytest.raises(ValueError, match="Unsupported asciinema format version: None"):
             parser.parse_events(cast_data)
 
     def test_parse_no_commands(self) -> None:
@@ -197,9 +195,7 @@ class TestAsciinemaParser:
         # Arrange
         parser = AsciinemaParser()
         cast_data = (
-            b'{"version":3}\n'
-            b'[0.0,"i","\\r"]\n'
-            b'[0.5,"o","\\u001b]2;git status\\u0007"]'
+            b'{"version":3}\n' b'[0.0,"i","\\r"]\n' b'[0.5,"o","\\u001b]2;git status\\u0007"]'
         )
 
         # Act
@@ -236,9 +232,7 @@ class TestAsciinemaParser:
         """Test parsing events with integer timestamps."""
         # Arrange
         parser = AsciinemaParser()
-        cast_data = (
-            b'{"version":3}\n' b'[1,"i","\\r"]\n' b'[2,"o","\\u001b]2;ls\\u0007"]'
-        )
+        cast_data = b'{"version":3}\n' b'[1,"i","\\r"]\n' b'[2,"o","\\u001b]2;ls\\u0007"]'
 
         # Act
         events = parser.parse_events(cast_data)
@@ -284,9 +278,7 @@ class TestAsciinemaParser:
         )
 
         # Act & Assert
-        with pytest.raises(
-            ValueError, match="Event count exceeds maximum allowed limit"
-        ):
+        with pytest.raises(ValueError, match="Event count exceeds maximum allowed limit"):
             parser.parse_events(cast_data, max_events=2)
 
     def test_parse_extracts_command_without_enter(self) -> None:

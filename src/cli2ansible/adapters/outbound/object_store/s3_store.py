@@ -34,13 +34,9 @@ class S3ObjectStore(ObjectStorePort):
         except Exception:
             self.client.create_bucket(Bucket=self.bucket)
 
-    def upload(
-        self, key: str, data: bytes, content_type: str = "application/octet-stream"
-    ) -> str:
+    def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
         """Upload artifact and return URL."""
-        self.client.put_object(
-            Bucket=self.bucket, Key=key, Body=data, ContentType=content_type
-        )
+        self.client.put_object(Bucket=self.bucket, Key=key, Body=data, ContentType=content_type)
         return f"{self.bucket}/{key}"
 
     def download(self, key: str) -> bytes:

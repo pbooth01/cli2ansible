@@ -1,3 +1,7 @@
+---
+type: "always_apply"
+---
+
 # Architecture Rules
 
 ## Overview
@@ -63,19 +67,25 @@ class Session:
 
 **Example - Good**:
 ```python
-# In domain/session.py
+# In domain/entities/session.py
 @dataclass
 class Session:
     id: UUID
     name: str
-    commands: list[str]
+    status: SessionStatus
+    created_at: datetime
+    updated_at: datetime
+    metadata: dict[str, Any]
     # Pure data, no I/O
 
-# In adapters/outbound/persistence/session_repository.py
-class SessionRepository:
-    def save(self, session: Session) -> None:
+# In adapters/outbound/db/sqlalchemy_session_repo.py
+class SQLAlchemySessionRepository(SessionRepositoryPort):
+    def save(self, session: Session) -> Session:
         # I/O happens in adapter
-        self.db.execute(...)
+        orm = SessionORM(...)
+        self.db.add(orm)
+        self.db.commit()
+        return session
 ```
 
 ### 3. Proper Ports and Adapters
@@ -89,22 +99,32 @@ class SessionRepository:
 
 **Example**:
 ```python
-# domain/ports/session_repository.py
+# domain/ports/repositories/session.py
 class SessionRepositoryPort(ABC):
     @abstractmethod
-    def save(self, session: Session) -> None: ...
+    def save(self, session: Session) -> Session: ...
 
     @abstractmethod
-    def find_by_id(self, session_id: UUID) -> Optional[Session]: ...
+    def get(self, session_id: UUID) -> Session | None: ...
 
-# adapters/outbound/persistence/session_repository.py
-class SessionRepository(SessionRepositoryPort):
-    def __init__(self, db: Database):
+    @abstractmethod
+    def list_all(self) -> list[Session]: ...
+
+    @abstractmethod
+    def delete(self, session_id: UUID) -> None: ...
+
+# adapters/outbound/db/sqlalchemy_session_repo.py
+class SQLAlchemySessionRepository(SessionRepositoryPort):
+    def __init__(self, db: Session):
         self.db = db
 
-    def save(self, session: Session) -> None:
-        # Implementation
-        ...
+    def save(self, session: Session) -> Session:
+        # Implementation with SQLAlchemy
+        orm = SessionORM.from_entity(session)
+        self.db.add(orm)
+        self.db.commit()
+        self.db.refresh(orm)
+        return orm.to_entity()
 ```
 
 ### 4. Dependency Injection
@@ -149,36 +169,103 @@ class CompilePlaybook:
 - **Required structure**:
 ```
 src/cli2ansible/
-├── domain/              # Entities, value objects, domain logic
-│   ├── session.py
-│   ├── report.py
-│   └── ports/          # Port interfaces
-│       ├── session_repository.py
-│       └── storage.py
-├── services/           # Application services (use cases)
-│   └── compile_playbook.py
-└── adapters/
-    ├── inbound/        # Entry points
-    │   ├── http/       # HTTP API
-    │   └── cli/        # CLI interface
-    └── outbound/       # External integrations
-        ├── persistence/  # Database
-        └── storage/      # S3/MinIO
+├── domain/                    # Pure business logic (NO I/O)
+│   ├── entities/              # Domain entities
+│   │   ├── session.py         # Session, Event, CastFile
+│   │   ├── command.py         # Command entity
+│   │   ├── task.py            # Ansible task entity
+│   │   ├── role.py            # Ansible role entity
+│   │   ├── report.py          # Compilation report
+│   │   ├── cleaning.py        # LLM cleaning entities
+│   │   └── enums.py           # SessionStatus, TaskConfidence
+│   ├── ports/                 # Port interfaces (contracts)
+│   │   ├── repositories/      # Repository ports
+│   │   │   ├── session.py     # Session repository port
+│   │   │   ├── event.py       # Event repository port
+│   │   │   ├── command.py     # Command repository port
+│   │   │   └── cast_file.py   # Cast file repository port
+│   │   ├── capture.py         # Terminal capture port
+│   │   ├── translator.py      # Command translation port
+│   │   ├── storage.py         # Object store & role generator ports
+│   │   └── llm.py             # LLM cleaning port
+│   ├── services.py            # Domain services
+│   ├── artifacts.py           # Role artifact exporter
+│   └── exceptions.py          # Domain exceptions
+├── application/               # Application layer (use cases)
+│   ├── ports/                 # Application use case interfaces
+│   │   ├── ingest.py          # Ingest use case port
+│   │   ├── compile.py         # Compile use case port
+│   │   └── clean.py           # Clean use case port
+│   ├── dtos/                  # Data transfer objects
+│   │   ├── session.py         # Session DTOs
+│   │   ├── event.py           # Event DTOs
+│   │   ├── compile.py         # Compile DTOs
+│   │   ├── clean.py           # Clean DTOs
+│   │   └── report.py          # Report DTOs
+│   ├── ingest.py              # Ingest session service
+│   ├── compile.py             # Compile playbook service
+│   ├── clean.py               # Clean session service
+│   └── errors.py              # Application errors
+├── adapters/                  # I/O implementations
+│   └── outbound/              # Outbound adapters
+│       ├── db/                # Database adapters
+│       │   ├── repository.py  # Legacy unified repository
+│       │   ├── sqlalchemy_session_repo.py
+│       │   ├── sqlalchemy_event_repo.py
+│       │   ├── sqlalchemy_command_repo.py
+│       │   └── sqlalchemy_orms.py
+│       ├── capture/           # Terminal capture adapters
+│       │   └── asciinema_parser.py
+│       ├── translator/        # Command translation adapters
+│       │   └── rules_engine.py
+│       ├── generators/        # Ansible role generators
+│       │   └── ansible_role.py
+│       ├── object_store/      # Object storage adapters
+│       │   └── s3_store.py    # S3/MinIO adapter
+│       └── llm/               # LLM adapters
+│           ├── anthropic_cleaner.py
+│           └── openai_cleaner.py
+├── api/                       # Inbound HTTP adapter
+│   ├── v1/                    # API v1 endpoints
+│   │   ├── sessions.py        # Session CRUD + compile + clean
+│   │   ├── events.py          # Event management
+│   │   ├── cast.py            # Cast file upload
+│   │   ├── health.py          # Health check
+│   │   └── utils.py           # API utilities
+│   └── schemas.py             # Pydantic schemas
+├── observability/             # Logging and monitoring
+├── app.py                     # Application composition root (DI)
+├── cli.py                     # CLI interface
+└── settings.py                # Configuration
 ```
 
 ## Architectural Patterns
 
 ### Domain-Driven Design
-- Use ubiquitous language
-- Model domain concepts explicitly
-- Aggregate roots control consistency
-- Domain events for side effects
+- Use ubiquitous language (Session, Event, Command, Task, Role)
+- Model domain concepts explicitly as entities
+- Aggregate roots control consistency (Session is the aggregate root)
+- Domain services encapsulate business logic (IngestSession, CompilePlaybook, CleanSession)
+- Value objects for immutable concepts (TaskConfidence, SessionStatus)
 
-### CQRS (if applicable)
-- Separate read and write models
-- Commands modify state
-- Queries return data
-- No business logic in queries
+### Application Layer Pattern
+- Application services orchestrate use cases
+- DTOs for data transfer across boundaries
+- Use case ports define application interfaces
+- Error handling at application boundary
+- Translation between domain and API representations
+
+### Repository Pattern
+- Abstract data persistence behind ports
+- Domain defines repository interfaces
+- Adapters implement concrete repositories
+- Separate repositories per aggregate (SessionRepository, EventRepository, CommandRepository)
+
+### Dependency Injection
+- All dependencies injected via constructors
+- Composition root in `app.py`
+- No service locator pattern
+- Testable through interface injection
 
 ## Enforcement
 - Architecture violations generate warnings

@@ -4,7 +4,7 @@ import pytest
 from cli2ansible.adapters.outbound.db.repository import SQLAlchemyRepository
 from cli2ansible.adapters.outbound.generators.ansible_role import AnsibleRoleGenerator
 from cli2ansible.adapters.outbound.translator.rules_engine import RulesEngine
-from cli2ansible.domain.services import IngestSession
+from cli2ansible.application import IngestSessionService
 
 
 @pytest.fixture()
@@ -34,6 +34,6 @@ def generator() -> AnsibleRoleGenerator:
 
 
 @pytest.fixture()
-def ingest_service(repository: SQLAlchemyRepository) -> IngestSession:
+def ingest_service(repository: SQLAlchemyRepository) -> IngestSessionService:
     """Create ingest service."""
-    return IngestSession(repository)
+    return IngestSessionService(repository)

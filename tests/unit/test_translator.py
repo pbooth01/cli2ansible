@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 from cli2ansible.adapters.outbound.translator.rules_engine import RulesEngine
-from cli2ansible.domain.models import Command, TaskConfidence
+from cli2ansible.domain.entities import Command, TaskConfidence
 
 
 @pytest.fixture()

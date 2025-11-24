@@ -206,11 +206,11 @@ quality_checks:
   - Success metrics are measurable
 
 anti-patterns:
-  - Vague requirements without acceptance criteria
-  - "TBD" or "TODO" in critical sections
-  - Architecture that doesn't match project patterns
-  - Missing security considerations
-  - Unrealistic timelines or effort estimates
-  - No mention of testing strategy
-  - Ignoring backward compatibility
+  - "Vague requirements without acceptance criteria"
+  - "TBD or TODO in critical sections"
+  - "Architecture that doesn't match project patterns"
+  - "Missing security considerations"
+  - "Unrealistic timelines or effort estimates"
+  - "No mention of testing strategy"
+  - "Ignoring backward compatibility"
   - Generic "best practices" without specifics

@@ -54,13 +54,13 @@ outputs:
       description: "Links to related docs"
 
 style:
-  - Clear and concise: prefer simple words
-  - Active voice: "The API returns..." not "is returned..."
-  - Concrete examples over abstract descriptions
-  - Consistent terminology (use project glossary)
-  - Code blocks with language hints for syntax highlighting
-  - Assume basic knowledge, explain advanced concepts
-  - Use headings for scanability
+  - "Clear and concise: prefer simple words"
+  - "Active voice: The API returns... not is returned..."
+  - "Concrete examples over abstract descriptions"
+  - "Consistent terminology (use project glossary)"
+  - "Code blocks with language hints for syntax highlighting"
+  - "Assume basic knowledge, explain advanced concepts"
+  - "Use headings for scanability"
 
 templates:
   api_endpoint: |
