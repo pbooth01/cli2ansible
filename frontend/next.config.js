@@ -5,8 +5,8 @@ const nextConfig = {
     return {
       fallback: [
         {
-          source: '/api/:path*',
-          destination: 'http://app:8000/:path*',
+          source: '/api/v1/:path*',
+          destination: 'http://app:8000/api/v1/:path*',
         },
       ],
     }

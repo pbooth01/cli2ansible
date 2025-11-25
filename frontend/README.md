@@ -87,12 +87,12 @@ web/
 
 The app communicates with the FastAPI backend at `http://localhost:8000`.
 
-Key API endpoints:
-- `POST /sessions` - Create session
-- `GET /sessions/{id}` - Get session details
-- `POST /sessions/{id}/compile` - Compile session
-- `GET /sessions/{id}/report` - Get compilation report
-- `POST /sessions/{id}/cast` - Upload .cast file
+Key API endpoints (all prefixed with `/api/v1`):
+- `POST /api/v1/sessions` - Create session
+- `GET /api/v1/sessions/{id}` - Get session details
+- `POST /api/v1/sessions/{id}/compile` - Compile session
+- `GET /api/v1/sessions/{id}/report` - Get compilation report
+- `POST /api/v1/sessions/{id}/cast` - Upload .cast file
 
 See [lib/api.ts](lib/api.ts) for complete API client implementation.
 
@@ -107,7 +107,7 @@ See [tailwind.config.js](tailwind.config.js) for configuration.
 
 ## Environment Variables
 
-- `NEXT_PUBLIC_API_URL` - Backend API URL (default: `/api`)
+- `NEXT_PUBLIC_API_URL` - Backend API URL (default: `/api/v1`)
 
 ## Testing
 
