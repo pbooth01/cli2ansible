@@ -95,5 +95,5 @@ jobs:
             [
               ".augment/rules/code-quality.md",
               ".augment/rules/security.md",
-              ".augment/rules/testing.md",
+              ".augment/rules/testing.md"
             ]
