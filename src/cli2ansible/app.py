@@ -57,7 +57,9 @@ def get_llm_cleaner() -> LLMPort:
                 raise ValueError("ANTHROPIC_API_KEY not configured")
             _llm_cleaner = AnthropicCleaner(api_key=settings.anthropic_api_key)
         else:
-            raise ValueError(f"Unknown LLM provider: {provider}. Must be 'anthropic' or 'openai'")
+            raise ValueError(
+                f"Unknown LLM provider: {provider}. Must be 'anthropic' or 'openai'"
+            )
 
     return _llm_cleaner
 

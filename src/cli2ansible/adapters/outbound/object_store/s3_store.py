@@ -2,6 +2,8 @@
 
 import boto3
 from botocore.client import Config
+from botocore.exceptions import ClientError
+from cli2ansible.domain.exceptions import ObjectNotFoundError, ObjectStoreError
 from cli2ansible.domain.ports import ObjectStorePort
 
 
@@ -25,25 +27,44 @@ class S3ObjectStore(ObjectStorePort):
             region_name=region,
             config=Config(signature_version="s3v4"),
         )
-        self._ensure_bucket()
 
     def _ensure_bucket(self) -> None:
         """Create bucket if it doesn't exist."""
-        try:
-            self.client.head_bucket(Bucket=self.bucket)
-        except Exception:
+        if not self.bucket_exists():
             self.client.create_bucket(Bucket=self.bucket)
 
-    def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
+    def bucket_exists(self) -> bool:
+        """Check if bucket exists."""
+        try:
+            self.client.head_bucket(Bucket=self.bucket)
+            return True
+        except ClientError:
+            return False
+
+    def upload(
+        self, key: str, data: bytes, content_type: str = "application/octet-stream"
+    ) -> str:
         """Upload artifact and return URL."""
-        self.client.put_object(Bucket=self.bucket, Key=key, Body=data, ContentType=content_type)
+        self.client.put_object(
+            Bucket=self.bucket, Key=key, Body=data, ContentType=content_type
+        )
         return f"{self.bucket}/{key}"
 
     def download(self, key: str) -> bytes:
         """Download artifact."""
-        response = self.client.get_object(Bucket=self.bucket, Key=key)
-        body_data: bytes = response["Body"].read()
-        return body_data
+        try:
+            response = self.client.get_object(Bucket=self.bucket, Key=key)
+            body_data: bytes = response["Body"].read()
+            return body_data
+        except self.client.exceptions.NoSuchKey as e:
+            raise ObjectNotFoundError(f"Object not found: {key}") from e
+        except ClientError as e:
+            error_code = e.response.get("Error", {}).get("Code", "Unknown")
+            raise ObjectStoreError(
+                f"Failed to download object {key}: {error_code}"
+            ) from e
+        except Exception as e:
+            raise ObjectStoreError(f"Unexpected error downloading {key}") from e
 
     def delete(self, key: str) -> None:
         """Delete artifact."""

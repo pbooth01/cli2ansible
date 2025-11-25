@@ -5,7 +5,9 @@ from fastapi.testclient import TestClient
 
 def test_create_session(client: TestClient) -> None:
     """Test session creation."""
-    response = client.post("/api/v1/sessions", json={"name": "test-session", "metadata": {}})
+    response = client.post(
+        "/api/v1/sessions", json={"name": "test-session", "metadata": {}}
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "test-session"
@@ -15,7 +17,9 @@ def test_create_session(client: TestClient) -> None:
 def test_get_session(client: TestClient) -> None:
     """Test getting a session."""
     # Create session
-    create_resp = client.post("/api/v1/sessions", json={"name": "test-session", "metadata": {}})
+    create_resp = client.post(
+        "/api/v1/sessions", json={"name": "test-session", "metadata": {}}
+    )
     session_id = create_resp.json()["id"]
 
     # Get session

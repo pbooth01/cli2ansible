@@ -26,7 +26,7 @@ class SQLAlchemySessionRepo(SessionRepositoryPort):
                 id=str(session.id),
                 name=session.name,
                 status=session.status.value,
-                session_metadata=session.metadata,
+                session_metadata=session.metadata
             )
             db.add(orm_session)
             db.commit()
@@ -58,6 +58,7 @@ class SQLAlchemySessionRepo(SessionRepositoryPort):
             orm_session.name = session.name
             orm_session.status = session.status.value
             orm_session.session_metadata = session.metadata
+
             db.commit()
             db.refresh(orm_session)
             return self._to_domain(orm_session)
@@ -83,7 +84,7 @@ class SQLAlchemySessionRepo(SessionRepositoryPort):
             status=SessionStatus(orm_session.status),
             created_at=orm_session.created_at,
             updated_at=orm_session.updated_at,
-            metadata=orm_session.session_metadata,
+            metadata=orm_session.session_metadata
         )
 
     # Event operations - not implemented in this repository

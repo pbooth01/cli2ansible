@@ -41,3 +41,15 @@ class InvalidFileError(DomainError):
     """Raised when a file is invalid or cannot be processed."""
 
     pass
+
+
+class ObjectNotFoundError(DomainError):
+    """Raised when an object is not found in storage."""
+
+    pass
+
+
+class ObjectStoreError(DomainError):
+    """Raised when object store operations fail."""
+
+    pass

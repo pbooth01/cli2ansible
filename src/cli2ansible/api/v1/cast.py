@@ -1,4 +1,5 @@
 """Cast file upload router."""
+
 # noqa: F841
 
 from typing import Any

@@ -39,6 +39,13 @@ class NotFoundError(ApplicationError):
     status = 404
 
 
+class ArtifactNotFoundError(NotFoundError):
+    """Raised when an artifact is not found in storage."""
+
+    code = "artifact_not_found"
+    status = 404
+
+
 class ConflictError(ApplicationError):
     """Raised on state conflicts (409) - e.g., version conflicts."""
 
@@ -64,6 +71,13 @@ class DependencyFailedError(ApplicationError):
     """Raised when external dependency fails (424 or 502/503 depending on policy)."""
 
     code = "dependency_failed"
+    status = 424
+
+
+class StorageError(DependencyFailedError):
+    """Raised when storage operations fail."""
+
+    code = "storage_error"
     status = 424
 
 
