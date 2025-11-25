@@ -8,6 +8,7 @@ from cli2ansible.application.dtos import (
     CleanSessionResponseDTO,
 )
 from cli2ansible.application.errors import BadRequestError, NotFoundError
+from cli2ansible.application.extraction import CommandExtractionService
 from cli2ansible.application.ports import CleanSessionUseCase
 from cli2ansible.domain.entities import CleanedCommand, CleaningReport, Command
 from cli2ansible.domain.ports import LLMPort, SessionRepositoryPort
@@ -21,10 +22,13 @@ class CleanSessionService(CleanSessionUseCase):
     duplicate and error correction commands using LLM analysis.
     """
 
-    def __init__(self, repo: SessionRepositoryPort, llm: LLMPort) -> None:
+    def __init__(
+        self, repo: SessionRepositoryPort, llm: LLMPort, extractor: CommandExtractionService
+    ) -> None:
         """Initialize clean service with ports."""
         self.repo = repo
         self.llm = llm
+        self.extractor = extractor
 
     def clean(self, session_id: UUID) -> CleanSessionResponseDTO:
         """Execute the clean use case: validate → extract → clean → return results.
@@ -45,7 +49,6 @@ class CleanSessionService(CleanSessionUseCase):
         Raises:
             ValueError: If session not found, no commands, or command limit exceeded
         """
-        from cli2ansible.application.ingest import IngestSessionService
 
         # Validate session exists
         session = self.repo.get(session_id)
@@ -57,16 +60,13 @@ class CleanSessionService(CleanSessionUseCase):
         if not commands:
             events = self.repo.get_events(session_id)
             if events:
-                # Create temporary ingest service to extract commands
-                ingest = IngestSessionService(self.repo)
-                ingest.extract_commands(session_id)
+                # Extract commands using extraction service
+                self.extractor.extract_commands(session_id)
                 commands = self.repo.get_commands(session_id)
 
         # Validate we have commands
         if not commands:
-            raise BadRequestError(
-                "No commands to clean. Session has no events or commands."
-            )
+            raise BadRequestError("No commands to clean. Session has no events or commands.")
 
         # Validate command count is within limits
         if len(commands) > settings.max_commands_for_cleaning:
@@ -82,9 +82,7 @@ class CleanSessionService(CleanSessionUseCase):
         cleaned_commands, report = self._clean_with_llm(commands, session_id)
 
         return CleanSessionResponseDTO(
-            cleaned_commands=[
-                self._cleaned_command_to_response(cmd) for cmd in cleaned_commands
-            ],
+            cleaned_commands=[self._cleaned_command_to_response(cmd) for cmd in cleaned_commands],
             report=self._report_to_response(report),
         )
 

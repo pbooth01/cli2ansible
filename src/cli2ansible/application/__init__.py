@@ -14,6 +14,7 @@ from cli2ansible.application.dtos import (
     SessionCreateRequestDTO,
     SessionResponseDTO,
 )
+from cli2ansible.application.extraction import CommandExtractionService
 from cli2ansible.application.ingest import IngestSessionService
 from cli2ansible.application.ports import (
     CleanSessionUseCase,
@@ -26,6 +27,7 @@ __all__ = [
     "IngestSessionService",
     "CompilePlaybookService",
     "CleanSessionService",
+    "CommandExtractionService",
     # Use Case Interfaces
     "IngestSessionUseCase",
     "CompilePlaybookUseCase",

@@ -1,13 +1,14 @@
 """Integration tests for application services."""
 
 from cli2ansible.adapters.outbound.db.repository import SQLAlchemyRepository
-from cli2ansible.application import IngestSessionService
+from cli2ansible.application import CommandExtractionService, IngestSessionService
 from cli2ansible.application.dtos import EventCreateRequestDTO, SessionCreateRequestDTO
 
 
 def test_session_lifecycle(repository: SQLAlchemyRepository) -> None:
     """Test session creation and retrieval."""
-    ingest = IngestSessionService(repository)
+    extractor = CommandExtractionService(repository)
+    ingest = IngestSessionService(repository, extractor)
 
     # Create session
     req = SessionCreateRequestDTO(name="test-session", metadata={"key": "value"})

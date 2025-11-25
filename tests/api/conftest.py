@@ -5,7 +5,11 @@ from cli2ansible.adapters.outbound.db.repository import SQLAlchemyRepository
 from cli2ansible.adapters.outbound.generators.ansible_role import AnsibleRoleGenerator
 from cli2ansible.adapters.outbound.translator.rules_engine import RulesEngine
 from cli2ansible.api import create_app
-from cli2ansible.application import CompilePlaybookService, IngestSessionService
+from cli2ansible.application import (
+    CommandExtractionService,
+    CompilePlaybookService,
+    IngestSessionService,
+)
 from cli2ansible.domain.ports import ObjectStorePort
 from fastapi.testclient import TestClient
 
@@ -16,9 +20,7 @@ class MockObjectStore(ObjectStorePort):
     def __init__(self) -> None:
         self.storage: dict[str, bytes] = {}
 
-    def upload(
-        self, key: str, data: bytes, content_type: str = "application/octet-stream"
-    ) -> str:
+    def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
         self.storage[key] = data
 
         return key
@@ -45,9 +47,10 @@ def client() -> TestClient:
     store = MockObjectStore()
     translator = RulesEngine()
     generator = AnsibleRoleGenerator()
+    extractor = CommandExtractionService(repo)
 
-    ingest = IngestSessionService(repo)
-    compile_svc = CompilePlaybookService(repo, translator, generator, store)
+    ingest = IngestSessionService(repo, extractor)
+    compile_svc = CompilePlaybookService(repo, translator, generator, store, extractor)
 
     app = create_app(ingest, compile_svc)
     return TestClient(app)

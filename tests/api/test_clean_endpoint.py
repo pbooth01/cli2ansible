@@ -9,6 +9,7 @@ from cli2ansible.adapters.outbound.translator.rules_engine import RulesEngine
 from cli2ansible.api import create_app
 from cli2ansible.application import (
     CleanSessionService,
+    CommandExtractionService,
     CompilePlaybookService,
     IngestSessionService,
 )
@@ -23,9 +24,7 @@ class MockObjectStore(ObjectStorePort):
     def __init__(self) -> None:
         self.storage: dict[str, bytes] = {}
 
-    def upload(
-        self, key: str, data: bytes, content_type: str = "application/octet-stream"
-    ) -> str:
+    def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
         self.storage[key] = data
         return key
 
@@ -100,10 +99,11 @@ def client_with_clean_service() -> TestClient:
     translator = RulesEngine()
     generator = AnsibleRoleGenerator()
     mock_llm = MockLLMPort()
+    extractor = CommandExtractionService(repo)
 
-    ingest = IngestSessionService(repo)
-    compile_svc = CompilePlaybookService(repo, translator, generator, store)
-    clean_svc = CleanSessionService(repo, mock_llm)
+    ingest = IngestSessionService(repo, extractor)
+    compile_svc = CompilePlaybookService(repo, translator, generator, store, extractor)
+    clean_svc = CleanSessionService(repo, mock_llm, extractor)
 
     app = create_app(ingest, compile_svc, clean_svc)
     return TestClient(app)
@@ -117,9 +117,10 @@ def client_without_clean_service() -> TestClient:
     store = MockObjectStore()
     translator = RulesEngine()
     generator = AnsibleRoleGenerator()
+    extractor = CommandExtractionService(repo)
 
-    ingest = IngestSessionService(repo)
-    compile_svc = CompilePlaybookService(repo, translator, generator, store)
+    ingest = IngestSessionService(repo, extractor)
+    compile_svc = CompilePlaybookService(repo, translator, generator, store, extractor)
 
     app = create_app(ingest, compile_svc, clean_service=None)
     return TestClient(app)
@@ -212,9 +213,7 @@ def test_clean_session_not_found(client_with_clean_service: TestClient) -> None:
     """Test POST /clean with non-existent session returns 404."""
     # Act
     fake_session_id = uuid4()
-    response = client_with_clean_service.post(
-        f"/api/v1/sessions/{fake_session_id}/clean"
-    )
+    response = client_with_clean_service.post(f"/api/v1/sessions/{fake_session_id}/clean")
 
     # Assert
     assert response.status_code == 404

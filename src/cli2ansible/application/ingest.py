@@ -1,6 +1,5 @@
 """Application service for ingesting terminal sessions."""
 
-import re
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -17,6 +16,7 @@ from cli2ansible.application.errors import (
     NotFoundError,
     TooLargeError,
 )
+from cli2ansible.application.extraction import CommandExtractionService
 from cli2ansible.application.ports import IngestSessionUseCase
 from cli2ansible.domain.entities import Command, Event, Session, SessionStatus
 from cli2ansible.domain.ports import CapturePort, ObjectStorePort, SessionRepositoryPort
@@ -28,11 +28,13 @@ class IngestSessionService(IngestSessionUseCase):
     def __init__(
         self,
         repo: SessionRepositoryPort,
+        extractor: CommandExtractionService,
         parser: CapturePort | None = None,
         store: ObjectStorePort | None = None,
     ) -> None:
         """Initialize ingest service with ports."""
         self.repo = repo
+        self.extractor = extractor
         self.parser = parser
         self.store = store
 
@@ -160,15 +162,11 @@ class IngestSessionService(IngestSessionUseCase):
         try:
             compile_service.compile(session_id)
         except Exception as e:
-            logger.warning(
-                f"Auto-compile after cast upload for session {session_id} failed: {e}"
-            )
+            logger.warning(f"Auto-compile after cast upload for session {session_id} failed: {e}")
 
         return events
 
-    def save_events(
-        self, session_id: UUID, events: list[EventCreateRequestDTO]
-    ) -> None:
+    def save_events(self, session_id: UUID, events: list[EventCreateRequestDTO]) -> None:
         """Save events for a session."""
         session = self.repo.get(session_id)
         if not session:
@@ -231,69 +229,11 @@ class IngestSessionService(IngestSessionUseCase):
         return self._event_to_response(updated)
 
     def extract_commands(self, session_id: UUID) -> list[Command]:
-        """Extract commands from session events."""
-        events = self.repo.get_events(session_id)
-        commands: list[Command] = []
+        """Extract commands from session events.
 
-        current_line = ""
-        for event in events:
-            if event.event_type == "o":  # Output
-                current_line += event.data
-                # Process lines if we have newlines OR if this is a new event without continuation
-                if "\n" in current_line or "\r" in current_line:
-                    lines = current_line.split("\n")
-                    for line in lines[:-1]:
-                        cmd = self._parse_command_line(
-                            line, session_id, event.timestamp, event.sequence
-                        )
-                        if cmd:
-                            commands.append(cmd)
-                    current_line = lines[-1]
-                else:
-                    # If there's no newline, treat each event as a potential command
-                    cmd = self._parse_command_line(
-                        current_line, session_id, event.timestamp, event.sequence
-                    )
-                    if cmd:
-                        commands.append(cmd)
-                    current_line = ""
-
-        # Process any remaining line
-        if current_line and events:
-            cmd = self._parse_command_line(
-                current_line, session_id, events[-1].timestamp, events[-1].sequence
-            )
-            if cmd:
-                commands.append(cmd)
-
-        self.repo.save_commands(commands)
-        return commands
-
-    def _parse_command_line(
-        self, line: str, session_id: UUID, timestamp: float, event_sequence: int = 0
-    ) -> Command | None:
-        """Parse a line to extract command."""
-        # Remove ANSI escape codes
-        line = re.sub(r"\x1b\[[0-9;]*m", "", line)
-        line = line.strip()
-
-        # Skip empty lines and prompts
-        if not line or line.endswith("$") or line.endswith("#"):
-            return None
-
-        # Detect sudo
-        sudo = line.startswith("sudo ")
-        if sudo:
-            line = line[5:]
-
-        return Command(
-            session_id=session_id,
-            raw=line,
-            normalized=line.strip(),
-            sudo=sudo,
-            timestamp=timestamp,
-            event_sequence=event_sequence,
-        )
+        Delegates to CommandExtractionService for the actual extraction logic.
+        """
+        return self.extractor.extract_commands(session_id)
 
     @staticmethod
     def _session_to_response(session: Session) -> SessionResponseDTO:

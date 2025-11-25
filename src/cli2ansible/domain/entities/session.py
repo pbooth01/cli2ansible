@@ -19,6 +19,7 @@ class Session:
     updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     metadata: dict[str, Any] = field(default_factory=dict)
 
+
 @dataclass
 class CastFile:
     """Uploaded cast file for a session."""

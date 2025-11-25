@@ -56,9 +56,7 @@ class SQLAlchemyCommandRepo(CommandRepositoryPort):
                 stmt = (
                     select(CommandORM)
                     .where(CommandORM.session_id == str(session_id))
-                    .order_by(
-                        CommandORM.event_sequence, CommandORM.timestamp, CommandORM.id
-                    )
+                    .order_by(CommandORM.event_sequence, CommandORM.timestamp, CommandORM.id)
                 )
                 orm_commands = db.scalars(stmt).all()
                 result = [self._command_to_domain(c) for c in orm_commands]
@@ -71,9 +69,7 @@ class SQLAlchemyCommandRepo(CommandRepositoryPort):
     def delete_commands(self, session_id: UUID) -> None:
         """Delete all commands for a session."""
         with self.SessionLocal() as db:
-            db.execute(
-                delete(CommandORM).where(CommandORM.session_id == str(session_id))
-            )
+            db.execute(delete(CommandORM).where(CommandORM.session_id == str(session_id)))
             db.commit()
 
     def _command_to_domain(self, orm_cmd: CommandORM) -> Command:

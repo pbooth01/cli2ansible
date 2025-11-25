@@ -107,4 +107,3 @@ class DatabaseHelper:
         if reason:
             message += f" - Reason: {reason}"
         print(message, file=sys.stderr)
-

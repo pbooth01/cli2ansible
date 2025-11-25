@@ -4,7 +4,7 @@ from unittest.mock import Mock
 from uuid import uuid4
 
 import pytest
-from cli2ansible.application import CleanSessionService
+from cli2ansible.application import CleanSessionService, CommandExtractionService
 from cli2ansible.domain.entities import CleanedCommand, CleaningReport, Command
 from cli2ansible.domain.ports import LLMPort, SessionRepositoryPort
 
@@ -22,9 +22,17 @@ def mock_llm() -> Mock:
 
 
 @pytest.fixture()
-def clean_service(mock_repo: Mock, mock_llm: Mock) -> CleanSessionService:
+def mock_extractor() -> Mock:
+    """Create mock command extraction service."""
+    return Mock(spec=CommandExtractionService)
+
+
+@pytest.fixture()
+def clean_service(
+    mock_repo: Mock, mock_llm: Mock, mock_extractor: Mock
+) -> CleanSessionService:
     """Create CleanSessionService with mocked dependencies."""
-    return CleanSessionService(mock_repo, mock_llm)
+    return CleanSessionService(mock_repo, mock_llm, mock_extractor)
 
 
 def test_clean_with_valid_session(

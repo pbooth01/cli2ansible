@@ -4,7 +4,7 @@ import pytest
 from cli2ansible.adapters.outbound.db.repository import SQLAlchemyRepository
 from cli2ansible.adapters.outbound.generators.ansible_role import AnsibleRoleGenerator
 from cli2ansible.adapters.outbound.translator.rules_engine import RulesEngine
-from cli2ansible.application import IngestSessionService
+from cli2ansible.application import CommandExtractionService, IngestSessionService
 
 
 @pytest.fixture()
@@ -34,6 +34,14 @@ def generator() -> AnsibleRoleGenerator:
 
 
 @pytest.fixture()
-def ingest_service(repository: SQLAlchemyRepository) -> IngestSessionService:
+def extractor(repository: SQLAlchemyRepository) -> CommandExtractionService:
+    """Create command extraction service."""
+    return CommandExtractionService(repository)
+
+
+@pytest.fixture()
+def ingest_service(
+    repository: SQLAlchemyRepository, extractor: CommandExtractionService
+) -> IngestSessionService:
     """Create ingest service."""
-    return IngestSessionService(repository)
+    return IngestSessionService(repository, extractor)

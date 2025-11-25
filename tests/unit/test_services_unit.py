@@ -3,7 +3,7 @@
 
 import pytest
 from cli2ansible.adapters.outbound.db.repository import SQLAlchemyRepository
-from cli2ansible.application import IngestSessionService
+from cli2ansible.application import CommandExtractionService, IngestSessionService
 
 
 @pytest.fixture()
@@ -15,9 +15,17 @@ def repo() -> SQLAlchemyRepository:
 
 
 @pytest.fixture()
-def ingest_service(repo: SQLAlchemyRepository) -> IngestSessionService:
+def extractor(repo: SQLAlchemyRepository) -> CommandExtractionService:
+    """Create CommandExtractionService."""
+    return CommandExtractionService(repo)
+
+
+@pytest.fixture()
+def ingest_service(
+    repo: SQLAlchemyRepository, extractor: CommandExtractionService
+) -> IngestSessionService:
     """Create IngestSessionService."""
-    return IngestSessionService(repo)
+    return IngestSessionService(repo, extractor)
 
 
 def test_extract_commands_with_newlines(

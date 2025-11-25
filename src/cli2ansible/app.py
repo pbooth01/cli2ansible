@@ -57,9 +57,7 @@ def get_llm_cleaner() -> LLMPort:
                 raise ValueError("ANTHROPIC_API_KEY not configured")
             _llm_cleaner = AnthropicCleaner(api_key=settings.anthropic_api_key)
         else:
-            raise ValueError(
-                f"Unknown LLM provider: {provider}. Must be 'anthropic' or 'openai'"
-            )
+            raise ValueError(f"Unknown LLM provider: {provider}. Must be 'anthropic' or 'openai'")
 
     return _llm_cleaner
 
@@ -74,8 +72,14 @@ def create_services() -> (
     generator = AnsibleRoleGenerator()
     parser = AsciinemaParser()
 
-    ingest_service = IngestSessionService(repo, parser, store)
-    compile_service = CompilePlaybookService(repo, translator, generator, store)
+    # Create shared command extraction service
+    from cli2ansible.application.extraction import CommandExtractionService
+
+    extractor = CommandExtractionService(repo)
+
+    # Create application services with dependencies
+    ingest_service = IngestSessionService(repo, extractor, parser, store)
+    compile_service = CompilePlaybookService(repo, translator, generator, store, extractor)
 
     # Only create clean service if LLM is configured
     clean_service: CleanSessionService | None = None
@@ -91,7 +95,7 @@ def create_services() -> (
 
     if has_api_key:
         llm = get_llm_cleaner()
-        clean_service = CleanSessionService(repo, llm)
+        clean_service = CleanSessionService(repo, llm, extractor)
 
     return ingest_service, compile_service, clean_service
 

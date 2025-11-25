@@ -5,7 +5,11 @@ import pytest
 from cli2ansible.adapters.outbound.db.repository import SQLAlchemyRepository
 from cli2ansible.adapters.outbound.generators.ansible_role import AnsibleRoleGenerator
 from cli2ansible.adapters.outbound.translator.rules_engine import RulesEngine
-from cli2ansible.application import CompilePlaybookService, IngestSessionService
+from cli2ansible.application import (
+    CommandExtractionService,
+    CompilePlaybookService,
+    IngestSessionService,
+)
 from cli2ansible.domain.entities import Command
 
 
@@ -18,13 +22,23 @@ def repo() -> SQLAlchemyRepository:
 
 
 @pytest.fixture()
-def ingest_service(repo: SQLAlchemyRepository) -> IngestSessionService:
-    """Create IngestSessionService."""
-    return IngestSessionService(repo)
+def extractor(repo: SQLAlchemyRepository) -> CommandExtractionService:
+    """Create CommandExtractionService."""
+    return CommandExtractionService(repo)
 
 
 @pytest.fixture()
-def compile_service(repo: SQLAlchemyRepository) -> CompilePlaybookService:
+def ingest_service(
+    repo: SQLAlchemyRepository, extractor: CommandExtractionService
+) -> IngestSessionService:
+    """Create IngestSessionService."""
+    return IngestSessionService(repo, extractor)
+
+
+@pytest.fixture()
+def compile_service(
+    repo: SQLAlchemyRepository, extractor: CommandExtractionService
+) -> CompilePlaybookService:
     """Create CompilePlaybookService with mock dependencies."""
     from cli2ansible.domain.ports import ObjectStorePort
 
@@ -48,7 +62,7 @@ def compile_service(repo: SQLAlchemyRepository) -> CompilePlaybookService:
     translator = RulesEngine()
     generator = AnsibleRoleGenerator()
     store = MockObjectStore()
-    return CompilePlaybookService(repo, translator, generator, store)
+    return CompilePlaybookService(repo, translator, generator, store, extractor)
 
 
 def test_compile_report_includes_module_breakdown(

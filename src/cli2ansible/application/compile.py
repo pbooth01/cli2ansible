@@ -4,6 +4,7 @@ from uuid import UUID
 
 from cli2ansible.application.dtos import CompileResponseDTO
 from cli2ansible.application.errors import NotFoundError
+from cli2ansible.application.extraction import CommandExtractionService
 from cli2ansible.application.ports import CompilePlaybookUseCase
 from cli2ansible.domain.artifacts import RoleArtifactExporter
 from cli2ansible.domain.entities import Report, Role, SessionStatus, TaskConfidence
@@ -28,12 +29,14 @@ class CompilePlaybookService(CompilePlaybookUseCase):
         translator: TranslatorPort,
         generator: RoleGeneratorPort,
         store: ObjectStorePort,
+        extractor: CommandExtractionService,
     ) -> None:
         """Initialize compile service with ports."""
         self.repo = repo
         self.translator = translator
         self.generator = generator
         self.store = store
+        self.extractor = extractor
         self.artifact_exporter = RoleArtifactExporter(generator, store)
 
     def compile(self, session_id: UUID) -> CompileResponseDTO:
@@ -55,8 +58,6 @@ class CompilePlaybookService(CompilePlaybookUseCase):
         Raises:
             ValueError: If session not found or compilation fails
         """
-        from cli2ansible.application.ingest import IngestSessionService
-
         # Validate session exists
         session = self.repo.get(session_id)
         if not session:
@@ -67,9 +68,8 @@ class CompilePlaybookService(CompilePlaybookUseCase):
         if not commands:
             events = self.repo.get_events(session_id)
             if events:
-                # Create temporary ingest service to extract commands
-                ingest = IngestSessionService(self.repo)
-                ingest.extract_commands(session_id)
+                # Extract commands using extraction service
+                self.extractor.extract_commands(session_id)
                 commands = self.repo.get_commands(session_id)
 
         # Compile to role
@@ -135,9 +135,7 @@ class CompilePlaybookService(CompilePlaybookUseCase):
             report.medium_confidence_percentage = (
                 report.medium_confidence / report.total_commands
             ) * 100
-            report.low_confidence_percentage = (
-                report.low_confidence / report.total_commands
-            ) * 100
+            report.low_confidence_percentage = (report.low_confidence / report.total_commands) * 100
 
         # Calculate session duration
         if commands:
@@ -167,8 +165,6 @@ class CompilePlaybookService(CompilePlaybookUseCase):
 
     def get_report(self, session_id: UUID) -> Report:
         """Get translation report for a session."""
-        from cli2ansible.application.ingest import IngestSessionService
-
         session = self.repo.get(session_id)
         if not session:
             raise NotFoundError(f"Session {session_id} not found")
@@ -178,9 +174,8 @@ class CompilePlaybookService(CompilePlaybookUseCase):
         if not commands:
             events = self.repo.get_events(session_id)
             if events:
-                # Need to extract commands - create a temporary IngestSessionService
-                ingest = IngestSessionService(self.repo)
-                ingest.extract_commands(session_id)
+                # Extract commands using extraction service
+                self.extractor.extract_commands(session_id)
                 commands = self.repo.get_commands(session_id)
 
         # Re-compile to get report
@@ -210,9 +205,7 @@ class CompilePlaybookService(CompilePlaybookUseCase):
             report.medium_confidence_percentage = (
                 report.medium_confidence / report.total_commands
             ) * 100
-            report.low_confidence_percentage = (
-                report.low_confidence / report.total_commands
-            ) * 100
+            report.low_confidence_percentage = (report.low_confidence / report.total_commands) * 100
 
         # Calculate session duration
         if commands:
