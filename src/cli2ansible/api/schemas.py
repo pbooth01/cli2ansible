@@ -12,6 +12,7 @@ class SessionCreate(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=255)
     metadata: dict[str, Any] = Field(default_factory=dict)
+    tags: list[str] = Field(default_factory=list)
 
 
 class CastFileResponse(BaseModel):
@@ -33,6 +34,7 @@ class SessionResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     metadata: dict[str, Any]
+    tags: list[str]
     cast_file: CastFileResponse | None = None
 
 

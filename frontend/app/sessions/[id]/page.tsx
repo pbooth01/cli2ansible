@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Download, Zap, BarChart3, Upload, Trash2 } from 'lucide-react'
+import { Download, Zap, BarChart3, Upload, Trash2, Tag } from 'lucide-react'
 import { getSession, compileSession, getReport, downloadPlaybook, uploadCastFile, deleteSession, Session, Report } from '@/lib/api'
 import { Button } from '@/components/Button'
 import { Card, CardHeader, CardBody, CardFooter } from '@/components/Card'
@@ -320,6 +320,24 @@ export default function SessionDetailsPage() {
               </p>
             </div>
           </div>
+          {session.tags && session.tags.length > 0 && (
+            <div className="pt-4 border-t border-gray-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Tag className="w-4 h-4 text-gray-600" />
+                <p className="text-sm text-gray-600 font-medium">Tags</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {session.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </CardBody>
         <CardFooter className="justify-end">
           <Button

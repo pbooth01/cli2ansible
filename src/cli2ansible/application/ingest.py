@@ -38,7 +38,11 @@ class IngestSessionService(IngestSessionUseCase):
 
     def create_session(self, req: SessionCreateRequestDTO) -> SessionResponseDTO:
         """Create a new session."""
-        session = Session(name=req.name, metadata=req.metadata or {})
+        session = Session(
+            name=req.name,
+            metadata=req.metadata or {},
+            tags=req.tags or []
+        )
         created = self.repo.create(session)
         return self._session_to_response(created)
 
@@ -49,9 +53,9 @@ class IngestSessionService(IngestSessionUseCase):
             raise NotFoundError(f"Session {session_id} not found")
         return self._session_to_response(session)
 
-    def list_sessions(self) -> list[SessionResponseDTO]:
-        """List all sessions."""
-        sessions = self.repo.list_all()
+    def list_sessions(self, tags: list[str] | None = None) -> list[SessionResponseDTO]:
+        """List all sessions, optionally filtered by tags."""
+        sessions = self.repo.list_all(tags=tags)
         return [self._session_to_response(s) for s in sessions]
 
     def delete_session(self, session_id: UUID) -> None:
@@ -301,6 +305,7 @@ class IngestSessionService(IngestSessionUseCase):
             created_at=session.created_at,
             updated_at=session.updated_at,
             metadata=session.metadata,
+            tags=session.tags,
         )
 
     @staticmethod

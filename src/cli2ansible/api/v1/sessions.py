@@ -64,13 +64,25 @@ def create_router(
         """
         from cli2ansible.application.dtos import SessionCreateRequestDTO
 
-        request_dto = SessionCreateRequestDTO(name=req.name, metadata=req.metadata or {})
+        request_dto = SessionCreateRequestDTO(
+            name=req.name,
+            metadata=req.metadata or {},
+            tags=req.tags or []
+        )
         return ingest_service.create_session(request_dto)
 
     @router.get("", tags=["sessions"])
-    async def list_sessions() -> dict[str, list[SessionResponseDTO]]:
-        """List all sessions."""
-        sessions = ingest_service.list_sessions()
+    async def list_sessions(tags: str | None = None) -> dict[str, list[SessionResponseDTO]]:
+        """List all sessions, optionally filtered by tags.
+
+        Args:
+            tags: Comma-separated list of tags to filter by (e.g., "production,database")
+
+        Returns:
+            Dictionary with sessions list
+        """
+        tag_list = [t.strip() for t in tags.split(",")] if tags else None
+        sessions = ingest_service.list_sessions(tags=tag_list)
         return {"sessions": sessions}
 
     @router.get("/{session_id}", response_model=SessionResponse)

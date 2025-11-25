@@ -27,6 +27,7 @@ class SQLAlchemySessionRepo(SessionRepositoryPort):
                 name=session.name,
                 status=session.status.value,
                 session_metadata=session.metadata,
+                tags=session.tags,
             )
             db.add(orm_session)
             db.commit()
@@ -40,11 +41,22 @@ class SQLAlchemySessionRepo(SessionRepositoryPort):
             orm_session = db.scalar(stmt)
             return self._to_domain(orm_session) if orm_session else None
 
-    def list_all(self) -> list[DomainSession]:
-        """List all sessions."""
+    def list_all(self, tags: list[str] | None = None) -> list[DomainSession]:
+        """List all sessions, optionally filtered by tags."""
         with self.SessionLocal() as db:
             stmt = select(SessionORM).order_by(SessionORM.created_at.desc())
             orm_sessions = db.scalars(stmt).all()
+
+            # Filter by tags if provided
+            if tags:
+                filtered_sessions = []
+                for s in orm_sessions:
+                    session_tags = s.tags if s.tags else []
+                    # Check if session has all requested tags
+                    if all(tag in session_tags for tag in tags):
+                        filtered_sessions.append(s)
+                return [self._to_domain(s) for s in filtered_sessions]
+
             return [self._to_domain(s) for s in orm_sessions]
 
     def update(self, session: DomainSession) -> DomainSession:
@@ -58,6 +70,7 @@ class SQLAlchemySessionRepo(SessionRepositoryPort):
             orm_session.name = session.name
             orm_session.status = session.status.value
             orm_session.session_metadata = session.metadata
+            orm_session.tags = session.tags
             db.commit()
             db.refresh(orm_session)
             return self._to_domain(orm_session)
@@ -84,6 +97,7 @@ class SQLAlchemySessionRepo(SessionRepositoryPort):
             created_at=orm_session.created_at,
             updated_at=orm_session.updated_at,
             metadata=orm_session.session_metadata,
+            tags=orm_session.tags if orm_session.tags else [],
         )
 
     # Event operations - not implemented in this repository

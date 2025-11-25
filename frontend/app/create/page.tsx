@@ -18,6 +18,7 @@ export default function CreatePage() {
   const [formData, setFormData] = useState({
     name: '',
     metadata: '',
+    tags: '',
   })
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -52,7 +53,13 @@ export default function CreatePage() {
         }
       }
 
-      const session = await createSession(formData.name, metadata)
+      // Parse tags from comma-separated string
+      const tags = formData.tags
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(tag => tag.length > 0)
+
+      const session = await createSession(formData.name, metadata, tags)
       setSessionId(session.id)
       setStep('upload')
     } catch (err) {
@@ -108,6 +115,15 @@ export default function CreatePage() {
                 value={formData.name}
                 onChange={handleInputChange}
                 helper="A descriptive name for your terminal session"
+              />
+
+              <Input
+                label="Tags (optional)"
+                name="tags"
+                placeholder="e.g., production, database, nginx"
+                value={formData.tags}
+                onChange={handleInputChange}
+                helper="Comma-separated tags to categorize this session"
               />
 
               <TextArea

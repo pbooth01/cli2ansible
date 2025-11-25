@@ -54,9 +54,9 @@ class SQLAlchemyRepository(SessionRepositoryPort):
         """Retrieve a session by ID."""
         return self.session_repo.get(session_id)
 
-    def list_all(self) -> list[DomainSession]:
-        """List all sessions."""
-        return self.session_repo.list_all()
+    def list_all(self, tags: list[str] | None = None) -> list[DomainSession]:
+        """List all sessions, optionally filtered by tags."""
+        return self.session_repo.list_all(tags=tags)
 
     def update(self, session: DomainSession) -> DomainSession:
         """Update session."""

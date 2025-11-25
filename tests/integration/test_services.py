@@ -22,6 +22,50 @@ def test_session_lifecycle(repository: SQLAlchemyRepository) -> None:
     assert retrieved.name == "test-session"
 
 
+def test_session_with_tags(repository: SQLAlchemyRepository) -> None:
+    """Test session creation with tags and tag filtering."""
+    ingest = IngestSessionService(repository)
+
+    # Create sessions with different tags
+    req1 = SessionCreateRequestDTO(
+        name="prod-session",
+        metadata={},
+        tags=["production", "database"]
+    )
+    session1 = ingest.create_session(req1)
+    assert session1.tags == ["production", "database"]
+
+    req2 = SessionCreateRequestDTO(
+        name="dev-session",
+        metadata={},
+        tags=["development", "database"]
+    )
+    session2 = ingest.create_session(req2)
+    assert session2.tags == ["development", "database"]
+
+    req3 = SessionCreateRequestDTO(
+        name="test-session",
+        metadata={},
+        tags=["production", "web"]
+    )
+    session3 = ingest.create_session(req3)
+    assert session3.tags == ["production", "web"]
+
+    # List all sessions
+    all_sessions = ingest.list_sessions()
+    assert len(all_sessions) == 3
+
+    # Filter by single tag
+    prod_sessions = ingest.list_sessions(tags=["production"])
+    assert len(prod_sessions) == 2
+    assert all("production" in s.tags for s in prod_sessions)
+
+    # Filter by multiple tags (AND logic)
+    prod_db_sessions = ingest.list_sessions(tags=["production", "database"])
+    assert len(prod_db_sessions) == 1
+    assert prod_db_sessions[0].name == "prod-session"
+
+
 def test_event_ingestion(
     ingest_service: IngestSessionService, repository: SQLAlchemyRepository
 ) -> None:

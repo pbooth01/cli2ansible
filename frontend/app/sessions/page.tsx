@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Plus, Clock, FileText } from 'lucide-react'
+import { Plus, Clock, FileText, Tag } from 'lucide-react'
 import { listSessions, Session } from '@/lib/api'
 import { Button } from '@/components/Button'
 import { Card, CardHeader, CardBody } from '@/components/Card'
@@ -92,7 +92,7 @@ export default function SessionsPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900 mb-1">{session.name}</h3>
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
                           <div className="flex items-center gap-1">
                             <Clock className="w-4 h-4" />
                             {formatDate(session.created_at)}
@@ -105,6 +105,19 @@ export default function SessionsPage() {
                             />
                           </div>
                         </div>
+                        {session.tags && session.tags.length > 0 && (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Tag className="w-3 h-3 text-gray-500" />
+                            {session.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="text-right">
                         <div className="text-sm text-gray-600">

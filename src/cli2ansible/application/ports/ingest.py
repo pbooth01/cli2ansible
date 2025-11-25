@@ -26,8 +26,8 @@ class IngestSessionUseCase(ABC):
         ...
 
     @abstractmethod
-    def list_sessions(self) -> list[SessionResponseDTO]:
-        """List all sessions."""
+    def list_sessions(self, tags: list[str] | None = None) -> list[SessionResponseDTO]:
+        """List all sessions, optionally filtered by tags."""
         ...
 
     @abstractmethod

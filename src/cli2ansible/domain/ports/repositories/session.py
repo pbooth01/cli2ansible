@@ -24,8 +24,8 @@ class SessionRepositoryPort(ABC):
         ...
 
     @abstractmethod
-    def list_all(self) -> list[Session]:
-        """List all sessions."""
+    def list_all(self, tags: list[str] | None = None) -> list[Session]:
+        """List all sessions, optionally filtered by tags."""
         ...
 
     @abstractmethod

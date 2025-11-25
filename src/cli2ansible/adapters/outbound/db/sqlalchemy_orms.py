@@ -29,6 +29,7 @@ class SessionORM(Base):
     session_metadata: Mapped[dict[str, Any]] = mapped_column(
         "metadata", JSON, nullable=False, default=dict
     )
+    tags: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
 
 
 class CastFileORM(Base):

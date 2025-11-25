@@ -12,6 +12,7 @@ class SessionCreateRequestDTO:
 
     name: str
     metadata: dict[str, Any] | None = None
+    tags: list[str] | None = None
 
 
 @dataclass
@@ -24,3 +25,4 @@ class SessionResponseDTO:
     created_at: datetime
     updated_at: datetime
     metadata: dict[str, Any]
+    tags: list[str]
