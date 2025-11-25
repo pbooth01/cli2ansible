@@ -1,5 +1,6 @@
 """SQLAlchemy implementation of command repository."""
 
+import sys
 from typing import Any
 from uuid import UUID
 
@@ -7,7 +8,6 @@ from cli2ansible.domain.entities import Command
 from cli2ansible.domain.ports.repositories import CommandRepositoryPort
 from sqlalchemy import delete, select
 
-from .db_helper import DatabaseHelper
 from .sqlalchemy_orms import CommandORM
 
 
@@ -18,14 +18,13 @@ class SQLAlchemyCommandRepo(CommandRepositoryPort):
         """Initialize with shared engine and SessionLocal."""
         self.engine = engine
         self.SessionLocal = session_local
-        self.db_helper = DatabaseHelper(verbose=True)
 
     def save_commands(self, commands: list[Command]) -> None:
         """Save parsed commands."""
-        self.db_helper.log_transaction_start(f"Saving {len(commands)} commands")
+        print(f"[DB TRANSACTION] Starting: Saving {len(commands)} commands")
         try:
             with self.SessionLocal() as db:
-                self.db_helper.log_query("INSERT", "commands", f"count={len(commands)}")
+                print(f"[DB] INSERT on commands - count={len(commands)}")
                 orm_commands = [
                     CommandORM(
                         session_id=str(cmd.session_id),
@@ -42,15 +41,15 @@ class SQLAlchemyCommandRepo(CommandRepositoryPort):
                 ]
                 db.add_all(orm_commands)
                 db.commit()
-                self.db_helper.log_transaction_commit(f"Saved {len(commands)} commands")
-                self.db_helper.log_success("Commands saved", len(commands))
+                print(f"[DB TRANSACTION] Committed: Saved {len(commands)} commands")
+                print(f"[DB SUCCESS] Commands saved ({len(commands)} records)")
         except Exception as e:
-            self.db_helper.log_error("save commands", e)
+            print(f"[DB ERROR] save commands failed: {str(e)}", file=sys.stderr)
             raise
 
     def get_commands(self, session_id: UUID) -> list[Command]:
         """Get all commands for a session."""
-        self.db_helper.log_query("SELECT", "commands", f"session_id={session_id}")
+        print(f"[DB] SELECT on commands - session_id={session_id}")
         try:
             with self.SessionLocal() as db:
                 stmt = (
@@ -60,10 +59,10 @@ class SQLAlchemyCommandRepo(CommandRepositoryPort):
                 )
                 orm_commands = db.scalars(stmt).all()
                 result = [self._command_to_domain(c) for c in orm_commands]
-                self.db_helper.log_success("Commands retrieved", len(result))
+                print(f"[DB SUCCESS] Commands retrieved ({len(result)} records)")
                 return result
         except Exception as e:
-            self.db_helper.log_error("get commands", e)
+            print(f"[DB ERROR] get commands failed: {str(e)}", file=sys.stderr)
             raise
 
     def delete_commands(self, session_id: UUID) -> None:

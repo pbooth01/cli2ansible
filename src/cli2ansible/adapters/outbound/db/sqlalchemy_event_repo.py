@@ -1,5 +1,6 @@
 """SQLAlchemy implementation of event repository."""
 
+import sys
 from typing import Any
 from uuid import UUID
 
@@ -7,7 +8,6 @@ from cli2ansible.domain.entities import Event
 from cli2ansible.domain.ports.repositories import EventRepositoryPort
 from sqlalchemy import delete, select
 
-from .db_helper import DatabaseHelper
 from .sqlalchemy_orms import EventORM
 
 
@@ -18,14 +18,13 @@ class SQLAlchemyEventRepo(EventRepositoryPort):
         """Initialize with shared engine and SessionLocal."""
         self.engine = engine
         self.SessionLocal = session_local
-        self.db_helper = DatabaseHelper(verbose=True)
 
     def save_events(self, events: list[Event]) -> None:
         """Save events for a session."""
-        self.db_helper.log_transaction_start(f"Saving {len(events)} events")
+        print(f"[DB TRANSACTION] Starting: Saving {len(events)} events")
         try:
             with self.SessionLocal() as db:
-                self.db_helper.log_query("INSERT", "events", f"count={len(events)}")
+                print(f"[DB] INSERT on events - count={len(events)}")
                 orm_events = [
                     EventORM(
                         id=str(event.id),
@@ -40,10 +39,10 @@ class SQLAlchemyEventRepo(EventRepositoryPort):
                 ]
                 db.add_all(orm_events)
                 db.commit()
-                self.db_helper.log_transaction_commit(f"Saved {len(events)} events")
-                self.db_helper.log_success("Events saved", len(events))
+                print(f"[DB TRANSACTION] Committed: Saved {len(events)} events")
+                print(f"[DB SUCCESS] Events saved ({len(events)} records)")
         except Exception as e:
-            self.db_helper.log_error("save events", e)
+            print(f"[DB ERROR] save events failed: {str(e)}", file=sys.stderr)
             raise
 
     def get_events(self, session_id: UUID) -> list[Event]:

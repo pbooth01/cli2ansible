@@ -40,28 +40,38 @@ class IngestSessionService(IngestSessionUseCase):
 
     def create_session(self, req: SessionCreateRequestDTO) -> SessionResponseDTO:
         """Create a new session."""
+        print(f"[INGEST] Creating new session: {req.name}")
         session = Session(name=req.name, metadata=req.metadata or {})
         created = self.repo.create(session)
+        print(f"[INGEST] Session created successfully: {created.id}")
         return self._session_to_response(created)
 
     def get_session(self, session_id: UUID) -> SessionResponseDTO:
         """Get session by ID."""
+        print(f"[INGEST] Retrieving session: {session_id}")
         session = self.repo.get(session_id)
         if not session:
+            print(f"[INGEST ERROR] Session not found: {session_id}")
             raise NotFoundError(f"Session {session_id} not found")
+        print(f"[INGEST] Session retrieved: {session.name}")
         return self._session_to_response(session)
 
     def list_sessions(self) -> list[SessionResponseDTO]:
         """List all sessions."""
+        print("[INGEST] Listing all sessions")
         sessions = self.repo.list_all()
+        print(f"[INGEST] Found {len(sessions)} sessions")
         return [self._session_to_response(s) for s in sessions]
 
     def delete_session(self, session_id: UUID) -> None:
         """Delete a session and all related data."""
+        print(f"[INGEST] Deleting session: {session_id}")
         session = self.repo.get(session_id)
         if not session:
+            print(f"[INGEST ERROR] Session not found for deletion: {session_id}")
             raise NotFoundError(f"Session {session_id} not found")
         self.repo.delete(session_id)
+        print(f"[INGEST] Session deleted successfully: {session_id}")
 
     def upload_cast_file(
         self, session_id: UUID, filename: str, file_data: bytes
@@ -81,47 +91,60 @@ class IngestSessionService(IngestSessionUseCase):
             TooLargeError: If file size exceeds maximum
             BadRequestError: If file is invalid or dependencies not configured
         """
+        print(f"[INGEST] Starting cast file upload for session {session_id}: {filename}")
+
         if not self.parser:
             raise BadRequestError("Parser not configured")
         if not self.store:
             raise BadRequestError("Object store not configured")
 
         # 1. Validate session exists
+        print(f"[INGEST] Validating session exists: {session_id}")
         session = self.repo.get(session_id)
         if not session:
             raise NotFoundError(f"Session {session_id} not found")
 
         # 2. Validate file size
+        file_size_mb = len(file_data) / (1024 * 1024)
+        print(f"[INGEST] Validating file size: {file_size_mb:.2f}MB")
         if len(file_data) > 10 * 1024 * 1024:  # 10MB
             raise TooLargeError("File size exceeds maximum (10MB)")
 
         # 3. Parse file to validate format
+        print(f"[INGEST] Parsing cast file: {filename}")
         try:
             events = self.parser.parse_events(file_data)
+            print(f"[INGEST] Parsed {len(events)} events from cast file")
         except Exception as e:
+            print(f"[INGEST ERROR] Failed to parse cast file: {str(e)}")
             raise BadRequestError(
                 f"Invalid .cast file format: {str(e)}", {"parse_error": str(e)}
             ) from e
 
         # 4. Store file in MinIO
         key = f"sessions/{session_id}/recording.cast"
+        print(f"[INGEST] Storing file in object store: {key}")
         self.store.upload(key, file_data, "application/json")
 
         # 5. Assign event IDs and versions
+        print(f"[INGEST] Assigning IDs and versions to {len(events)} events")
         for event in events:
             event.id = uuid4()
             event.session_id = session_id
             event.version = 1
 
         # 6. Save events to database
+        print(f"[INGEST] Saving {len(events)} events to database")
         self.repo.save_events(events)
 
         # 7. Update session metadata and status
+        print(f"[INGEST] Updating session metadata and status")
         session.metadata["cast_file_key"] = key
         session.metadata["cast_filename"] = filename
         session.status = SessionStatus.UPLOADED
         self.repo.update(session)
 
+        print(f"[INGEST] Cast file upload completed successfully for session {session_id}")
         return [self._event_to_response(e) for e in events]
 
     def upload_cast_file_and_auto_compile(
@@ -168,8 +191,10 @@ class IngestSessionService(IngestSessionUseCase):
 
     def save_events(self, session_id: UUID, events: list[EventCreateRequestDTO]) -> None:
         """Save events for a session."""
+        print(f"[INGEST] Saving {len(events)} events for session {session_id}")
         session = self.repo.get(session_id)
         if not session:
+            print(f"[INGEST ERROR] Session not found: {session_id}")
             raise NotFoundError(f"Session {session_id} not found")
 
         domain_events = [
@@ -183,17 +208,22 @@ class IngestSessionService(IngestSessionUseCase):
             for e in events
         ]
 
+        print(f"[INGEST] Updating session status to UPLOADED")
         session.status = SessionStatus.UPLOADED
         self.repo.update(session)
         self.repo.save_events(domain_events)
+        print(f"[INGEST] Events saved successfully")
 
     def get_events(self, session_id: UUID) -> list[EventResponseDTO]:
         """Get all events for a session."""
+        print(f"[INGEST] Retrieving events for session {session_id}")
         session = self.repo.get(session_id)
         if not session:
+            print(f"[INGEST ERROR] Session not found: {session_id}")
             raise NotFoundError(f"Session {session_id} not found")
 
         events = self.repo.get_events(session_id)
+        print(f"[INGEST] Retrieved {len(events)} events")
         return [self._event_to_response(e) for e in events]
 
     def update_event(
