@@ -7,6 +7,7 @@ from cli2ansible.domain.entities import Event
 from cli2ansible.domain.ports.repositories import EventRepositoryPort
 from sqlalchemy import delete, select
 
+from .db_helper import DatabaseHelper
 from .sqlalchemy_orms import EventORM
 
 
@@ -17,24 +18,33 @@ class SQLAlchemyEventRepo(EventRepositoryPort):
         """Initialize with shared engine and SessionLocal."""
         self.engine = engine
         self.SessionLocal = session_local
+        self.db_helper = DatabaseHelper(verbose=True)
 
     def save_events(self, events: list[Event]) -> None:
         """Save events for a session."""
-        with self.SessionLocal() as db:
-            orm_events = [
-                EventORM(
-                    id=str(event.id),
-                    session_id=str(event.session_id),
-                    timestamp=event.timestamp,
-                    event_type=event.event_type,
-                    data=event.data,
-                    sequence=event.sequence,
-                    version=event.version,
-                )
-                for event in events
-            ]
-            db.add_all(orm_events)
-            db.commit()
+        self.db_helper.log_transaction_start(f"Saving {len(events)} events")
+        try:
+            with self.SessionLocal() as db:
+                self.db_helper.log_query("INSERT", "events", f"count={len(events)}")
+                orm_events = [
+                    EventORM(
+                        id=str(event.id),
+                        session_id=str(event.session_id),
+                        timestamp=event.timestamp,
+                        event_type=event.event_type,
+                        data=event.data,
+                        sequence=event.sequence,
+                        version=event.version,
+                    )
+                    for event in events
+                ]
+                db.add_all(orm_events)
+                db.commit()
+                self.db_helper.log_transaction_commit(f"Saved {len(events)} events")
+                self.db_helper.log_success("Events saved", len(events))
+        except Exception as e:
+            self.db_helper.log_error("save events", e)
+            raise
 
     def get_events(self, session_id: UUID) -> list[Event]:
         """Get all events for a session."""

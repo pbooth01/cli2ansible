@@ -8,6 +8,7 @@ from cli2ansible.domain.entities import Session as DomainSession
 from cli2ansible.domain.ports.repositories import SessionRepositoryPort
 from sqlalchemy import delete, select
 
+from .db_helper import DatabaseHelper
 from .sqlalchemy_orms import CastFileORM, CommandORM, EventORM, SessionORM
 
 
@@ -18,27 +19,46 @@ class SQLAlchemySessionRepo(SessionRepositoryPort):
         """Initialize with shared engine and SessionLocal."""
         self.engine = engine
         self.SessionLocal = session_local
+        self.db_helper = DatabaseHelper(verbose=True)
 
     def create(self, session: DomainSession) -> DomainSession:
         """Create a new session."""
-        with self.SessionLocal() as db:
-            orm_session = SessionORM(
-                id=str(session.id),
-                name=session.name,
-                status=session.status.value,
-                session_metadata=session.metadata
-            )
-            db.add(orm_session)
-            db.commit()
-            db.refresh(orm_session)
-            return self._to_domain(orm_session)
+        self.db_helper.log_transaction_start(f"Creating session {session.id}")
+        try:
+            with self.SessionLocal() as db:
+                if not self.db_helper.validate_session(db):
+                    raise ValueError("Invalid database session")
+
+                self.db_helper.log_query("INSERT", "sessions", f"id={session.id}")
+                orm_session = SessionORM(
+                    id=str(session.id),
+                    name=session.name,
+                    status=session.status.value,
+                    session_metadata=session.metadata
+                )
+                db.add(orm_session)
+                db.commit()
+                db.refresh(orm_session)
+                self.db_helper.log_transaction_commit(f"Created session {session.id}")
+                self.db_helper.log_success("Session created", 1)
+                return self._to_domain(orm_session)
+        except Exception as e:
+            self.db_helper.log_error("create session", e)
+            raise
 
     def get(self, session_id: UUID) -> DomainSession | None:
         """Retrieve a session by ID."""
-        with self.SessionLocal() as db:
-            stmt = select(SessionORM).where(SessionORM.id == str(session_id))
-            orm_session = db.scalar(stmt)
-            return self._to_domain(orm_session) if orm_session else None
+        self.db_helper.log_query("SELECT", "sessions", f"id={session_id}")
+        try:
+            with self.SessionLocal() as db:
+                stmt = select(SessionORM).where(SessionORM.id == str(session_id))
+                orm_session = db.scalar(stmt)
+                if orm_session:
+                    self.db_helper.log_success("Session retrieved", 1)
+                return self._to_domain(orm_session) if orm_session else None
+        except Exception as e:
+            self.db_helper.log_error("get session", e)
+            raise
 
     def list_all(self) -> list[DomainSession]:
         """List all sessions."""
@@ -65,16 +85,27 @@ class SQLAlchemySessionRepo(SessionRepositoryPort):
 
     def delete(self, session_id: UUID) -> None:
         """Delete a session and all related data."""
-        with self.SessionLocal() as db:
-            # Delete related cast files
-            db.execute(delete(CastFileORM).where(CastFileORM.session_id == str(session_id)))
-            # Delete related commands
-            db.execute(delete(CommandORM).where(CommandORM.session_id == str(session_id)))
-            # Delete related events
-            db.execute(delete(EventORM).where(EventORM.session_id == str(session_id)))
-            # Delete the session
-            db.execute(delete(SessionORM).where(SessionORM.id == str(session_id)))
-            db.commit()
+        self.db_helper.log_transaction_start(f"Deleting session {session_id} and related data")
+        try:
+            with self.SessionLocal() as db:
+                # Delete related cast files
+                self.db_helper.log_query("DELETE", "cast_files", f"session_id={session_id}")
+                db.execute(delete(CastFileORM).where(CastFileORM.session_id == str(session_id)))
+                # Delete related commands
+                self.db_helper.log_query("DELETE", "commands", f"session_id={session_id}")
+                db.execute(delete(CommandORM).where(CommandORM.session_id == str(session_id)))
+                # Delete related events
+                self.db_helper.log_query("DELETE", "events", f"session_id={session_id}")
+                db.execute(delete(EventORM).where(EventORM.session_id == str(session_id)))
+                # Delete the session
+                self.db_helper.log_query("DELETE", "sessions", f"id={session_id}")
+                db.execute(delete(SessionORM).where(SessionORM.id == str(session_id)))
+                db.commit()
+                self.db_helper.log_transaction_commit(f"Deleted session {session_id}")
+                self.db_helper.log_success("Session and related data deleted")
+        except Exception as e:
+            self.db_helper.log_error("delete session", e)
+            raise
 
     def _to_domain(self, orm_session: SessionORM) -> DomainSession:
         """Convert ORM to domain model."""
