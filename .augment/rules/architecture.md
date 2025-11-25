@@ -197,11 +197,11 @@ src/cli2ansible/
 │   │   ├── compile.py         # Compile use case port
 │   │   └── clean.py           # Clean use case port
 │   ├── dtos/                  # Data transfer objects
-│   │   ├── session.py         # Session DTOs
-│   │   ├── event.py           # Event DTOs
-│   │   ├── compile.py         # Compile DTOs
-│   │   ├── clean.py           # Clean DTOs
-│   │   └── report.py          # Report DTOs
+│   │   ├── session_dto.py     # Session DTOs
+│   │   ├── event_dto.py       # Event DTOs
+│   │   ├── compile_dto.py     # Compile DTOs
+│   │   ├── clean_dto.py       # Clean DTOs
+│   │   └── report_dto.py      # Report DTOs
 │   ├── ingest.py              # Ingest session service
 │   ├── compile.py             # Compile playbook service
 │   ├── clean.py               # Clean session service

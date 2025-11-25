@@ -75,97 +75,34 @@ curl http://localhost:8000/sessions/{session_id}/playbook -o role.zip
 ```
 cli2ansible/
 ├── src/cli2ansible/
-<<<<<<< Updated upstream
-│   ├── domain/              # Core business logic
-│   │   ├── models.py        # Domain entities
-│   │   ├── ports.py         # Port interfaces
-│   │   └── services.py      # Domain services
-│   ├── adapters/
-│   │   ├── inbound/http/    # FastAPI REST API
-│   │   └── outbound/        # Database, S3, translators
-│   └── app.py               # Application composition root
-├── tests/                   # Unit, integration, and API tests
-├── alembic/                 # Database migrations
-├── docker-compose.yml       # Local development environment
-└── pyproject.toml           # Python dependencies
-=======
 │   ├── domain/                    # Core business logic (pure, no I/O)
 │   │   ├── entities/              # Domain entities
-│   │   │   ├── session.py         # Session, Event, CastFile
-│   │   │   ├── command.py         # Command entity
-│   │   │   ├── task.py            # Ansible task entity
-│   │   │   ├── role.py            # Ansible role entity
-│   │   │   ├── report.py          # Compilation report
-│   │   │   ├── cleaning.py        # LLM cleaning entities
-│   │   │   └── enums.py           # SessionStatus, TaskConfidence
 │   │   ├── ports/                 # Port interfaces (contracts)
-│   │   │   ├── repositories/      # Repository ports
-│   │   │   │   ├── session.py     # Session repository port
-│   │   │   │   ├── event.py       # Event repository port
-│   │   │   │   ├── command.py     # Command repository port
-│   │   │   │   └── cast_file.py   # Cast file repository port
-│   │   │   ├── capture.py         # Terminal capture port
-│   │   │   ├── translator.py      # Command translation port
-│   │   │   ├── storage.py         # Object store & role generator ports
-│   │   │   └── llm.py             # LLM cleaning port
-│   │   ├── services.py            # Domain services (IngestSession, CompilePlaybook, CleanSession)
+│   │   │   └── repositories/      # Repository ports
+│   │   ├── services.py            # Domain services
 │   │   ├── artifacts.py           # Role artifact exporter
 │   │   └── exceptions.py          # Domain exceptions
 │   ├── application/               # Application layer (use cases)
 │   │   ├── ports/                 # Application use case interfaces
-│   │   │   ├── ingest.py          # Ingest use case port
-│   │   │   ├── compile.py         # Compile use case port
-│   │   │   └── clean.py           # Clean use case port
-│   │   ├── dtos/                  # Data transfer objects
-│   │   │   ├── session.py         # Session DTOs
-│   │   │   ├── event.py           # Event DTOs
-│   │   │   ├── compile.py         # Compile DTOs
-│   │   │   ├── clean.py           # Clean DTOs
-│   │   │   └── report.py          # Report DTOs
-│   │   ├── ingest.py              # Ingest session service
-│   │   ├── compile.py             # Compile playbook service
-│   │   ├── clean.py               # Clean session service
-│   │   └── errors.py              # Application errors
+│   │   └── dtos/                  # Data transfer objects
 │   ├── adapters/                  # Adapters (I/O implementations)
 │   │   └── outbound/              # Outbound adapters
 │   │       ├── db/                # Database adapters
-│   │       │   ├── repository.py  # Legacy unified repository
-│   │       │   ├── sqlalchemy_session_repo.py
-│   │       │   ├── sqlalchemy_event_repo.py
-│   │       │   ├── sqlalchemy_command_repo.py
-│   │       │   └── sqlalchemy_orms.py
 │   │       ├── capture/           # Terminal capture adapters
-│   │       │   └── asciinema_parser.py
 │   │       ├── translator/        # Command translation adapters
-│   │       │   └── rules_engine.py
 │   │       ├── generators/        # Ansible role generators
-│   │       │   └── ansible_role.py
 │   │       ├── object_store/      # Object storage adapters
-│   │       │   └── s3_store.py    # S3/MinIO adapter
 │   │       └── llm/               # LLM adapters
-│   │           ├── anthropic_cleaner.py
-│   │           └── openai_cleaner.py
 │   ├── api/                       # Inbound HTTP adapter
-│   │   ├── v1/                    # API v1 endpoints
-│   │   │   ├── sessions.py        # Session CRUD + compile + clean
-│   │   │   ├── events.py          # Event management
-│   │   │   ├── cast.py            # Cast file upload
-│   │   │   ├── health.py          # Health check
-│   │   │   └── utils.py           # API utilities
-│   │   └── schemas.py             # Pydantic schemas
+│   │   └── v1/                    # API v1 endpoints
 │   ├── observability/             # Logging and monitoring
-│   ├── app.py                     # Application composition root (DI)
+│   ├── app.py                     # Application composition root
 │   ├── cli.py                     # CLI interface
 │   └── settings.py                # Configuration
 ├── tests/                         # Unit, integration, and API tests
-│   ├── domain/                    # Domain layer tests
-│   ├── application/               # Application layer tests
-│   ├── adapters/                  # Adapter tests
-│   └── api/                       # API integration tests
 ├── alembic/                       # Database migrations
 ├── docker-compose.yml             # Local development environment
 └── pyproject.toml                 # Python dependencies
->>>>>>> Stashed changes
 ```
 
 ## 🧪 Testing
@@ -188,13 +125,6 @@ make format
 
 This project follows **Hexagonal Architecture** (Ports & Adapters):
 
-<<<<<<< Updated upstream
-- **Domain Layer**: Pure business logic (models, services, ports)
-- **Adapters**:
-  - Inbound: FastAPI HTTP endpoints
-  - Outbound: PostgreSQL, S3/MinIO, Ansible generators
-- **Application**: Dependency wiring and composition root
-=======
 ### Layers
 
 1. **Domain Layer** (`domain/`)
@@ -255,7 +185,6 @@ API (Inbound) → Application → Domain ← Adapters (Outbound)
    - Send commands to LLM → Get cleaned versions → Update session
    - Domain service: `CleanSession`
    - Application service: `CleanSessionService`
->>>>>>> Stashed changes
 
 ### Supported Commands
 
@@ -320,30 +249,12 @@ These tools are **Linux-only** and won't install on macOS/Windows. They're in an
 - In Docker/Linux: They're automatically installed
 - To test generated roles: Use Docker or CI/CD pipeline
 
-## 📈 Roadmap
-
-<<<<<<< Updated upstream
-- [ ] Real-time terminal monitoring (Phase 2)
-- [ ] LLM-assisted translation for complex commands
-=======
-### Completed ✅
-- [x] Hexagonal architecture implementation
-- [x] Session and event management
-- [x] Asciinema cast file parsing
-- [x] Rule-based command translation
-- [x] Ansible role generation with Molecule scaffolding
-- [x] S3/MinIO artifact storage
-- [x] LLM-assisted command cleaning (Anthropic/OpenAI)
-- [x] RESTful API with versioning
-- [x] Comprehensive test coverage
-
 ### In Progress 🚧
 - [ ] Frontend UI for session management
 - [ ] Enhanced LLM translation for complex commands
 - [ ] Real-time terminal monitoring
 
 ### Future 🔮
->>>>>>> Stashed changes
 - [ ] Support for more package managers and tools
 - [ ] Web UI for session management
 - [ ] Multi-host playbook generation
