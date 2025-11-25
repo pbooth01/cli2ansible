@@ -5,6 +5,7 @@ from typing import Any
 from uuid import UUID
 
 from cli2ansible.api.schemas import CastUploadResponse
+from cli2ansible.api.v1.utils import event_dto_to_response
 from cli2ansible.application.errors import BadRequestError
 from fastapi import APIRouter, UploadFile
 
@@ -51,9 +52,12 @@ def create_router(ingest_service: Any, compile_service: Any) -> APIRouter:
         # Use service to upload cast file and auto-compile
         # Service handles: upload → parse → store → auto-compile (with graceful failure)
         # The service will validate file size and raise TooLarge if needed
-        events = ingest_service.upload_cast_file_and_auto_compile(
+        event_dtos = ingest_service.upload_cast_file_and_auto_compile(
             session_id, file.filename, file_data, compile_service
         )
+
+        # Convert DTOs to Pydantic models at the API layer boundary
+        events = [event_dto_to_response(dto) for dto in event_dtos]
 
         return CastUploadResponse(
             status="parsed",

@@ -13,6 +13,7 @@ from cli2ansible.api.schemas import (
     EventUpdateRequest,
     EventUpdateResult,
 )
+from cli2ansible.api.v1.utils import event_dto_to_response
 from cli2ansible.application.errors import ApplicationError
 from fastapi import APIRouter
 
@@ -72,7 +73,10 @@ def create_router(ingest_service: Any) -> APIRouter:
             ApplicationError: 404 if session not found
         """
         # Service validates session exists and retrieves events
-        events = ingest_service.get_events(session_id)
+        event_dtos = ingest_service.get_events(session_id)
+
+        # Convert DTOs to Pydantic models at the API layer boundary
+        events = [event_dto_to_response(dto) for dto in event_dtos]
 
         return EventsListResponse(
             session_id=session_id,
@@ -115,7 +119,10 @@ def create_router(ingest_service: Any) -> APIRouter:
                 )
 
                 # Service validates and updates event with optimistic locking
-                updated_event = ingest_service.update_event(session_id, update.id, update_dto)
+                updated_event_dto = ingest_service.update_event(session_id, update.id, update_dto)
+
+                # Convert DTO to Pydantic model at the API layer boundary
+                updated_event = event_dto_to_response(updated_event_dto)
 
                 formatted_results.append(
                     EventUpdateResult(
@@ -164,6 +171,9 @@ def create_router(ingest_service: Any) -> APIRouter:
         )
 
         # Service validates session, event, and applies update with optimistic locking
-        return ingest_service.update_event(session_id, event_id, update_dto)
+        updated_event_dto = ingest_service.update_event(session_id, event_id, update_dto)
+
+        # Convert DTO to Pydantic model at the API layer boundary
+        return event_dto_to_response(updated_event_dto)
 
     return router
