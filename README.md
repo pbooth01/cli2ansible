@@ -75,18 +75,34 @@ curl http://localhost:8000/sessions/{session_id}/playbook -o role.zip
 ```
 cli2ansible/
 ├── src/cli2ansible/
-│   ├── domain/              # Core business logic
-│   │   ├── models.py        # Domain entities
-│   │   ├── ports.py         # Port interfaces
-│   │   └── services.py      # Domain services
-│   ├── adapters/
-│   │   ├── inbound/http/    # FastAPI REST API
-│   │   └── outbound/        # Database, S3, translators
-│   └── app.py               # Application composition root
-├── tests/                   # Unit, integration, and API tests
-├── alembic/                 # Database migrations
-├── docker-compose.yml       # Local development environment
-└── pyproject.toml           # Python dependencies
+│   ├── domain/                    # Core business logic (pure, no I/O)
+│   │   ├── entities/              # Domain entities
+│   │   ├── ports/                 # Port interfaces (contracts)
+│   │   │   └── repositories/      # Repository ports
+│   │   ├── services.py            # Domain services
+│   │   ├── artifacts.py           # Role artifact exporter
+│   │   └── exceptions.py          # Domain exceptions
+│   ├── application/               # Application layer (use cases)
+│   │   ├── ports/                 # Application use case interfaces
+│   │   └── dtos/                  # Data transfer objects
+│   ├── adapters/                  # Adapters (I/O implementations)
+│   │   └── outbound/              # Outbound adapters
+│   │       ├── db/                # Database adapters
+│   │       ├── capture/           # Terminal capture adapters
+│   │       ├── translator/        # Command translation adapters
+│   │       ├── generators/        # Ansible role generators
+│   │       ├── object_store/      # Object storage adapters
+│   │       └── llm/               # LLM adapters
+│   ├── api/                       # Inbound HTTP adapter
+│   │   └── v1/                    # API v1 endpoints
+│   ├── observability/             # Logging and monitoring
+│   ├── app.py                     # Application composition root
+│   ├── cli.py                     # CLI interface
+│   └── settings.py                # Configuration
+├── tests/                         # Unit, integration, and API tests
+├── alembic/                       # Database migrations
+├── docker-compose.yml             # Local development environment
+└── pyproject.toml                 # Python dependencies
 ```
 
 ## 🧪 Testing
@@ -109,11 +125,66 @@ make format
 
 This project follows **Hexagonal Architecture** (Ports & Adapters):
 
-- **Domain Layer**: Pure business logic (models, services, ports)
-- **Adapters**:
-  - Inbound: FastAPI HTTP endpoints
-  - Outbound: PostgreSQL, S3/MinIO, Ansible generators
-- **Application**: Dependency wiring and composition root
+### Layers
+
+1. **Domain Layer** (`domain/`)
+   - Pure business logic with **no I/O dependencies**
+   - **Entities**: Session, Event, Command, Task, Role, Report
+   - **Ports**: Interface definitions for repositories, translators, storage, LLM
+   - **Services**: Core business logic (IngestSession, CompilePlaybook, CleanSession)
+   - **Artifacts**: Role artifact generation logic
+
+2. **Application Layer** (`application/`)
+   - Use case orchestration and coordination
+   - **Services**: IngestSessionService, CompilePlaybookService, CleanSessionService
+   - **DTOs**: Data transfer objects for API boundaries
+   - **Ports**: Use case interfaces
+   - Translates between domain entities and API representations
+
+3. **Adapters Layer** (`adapters/`)
+   - **Outbound Adapters** (external integrations):
+     - `db/`: PostgreSQL repositories (SQLAlchemy)
+     - `capture/`: Asciinema parser for terminal recordings
+     - `translator/`: Rules engine for command-to-Ansible translation
+     - `generators/`: Ansible role file generation
+     - `object_store/`: S3/MinIO storage
+     - `llm/`: Anthropic/OpenAI command cleaning
+
+4. **API Layer** (`api/`)
+   - **Inbound Adapter**: FastAPI HTTP endpoints
+   - RESTful API with versioning (v1)
+   - Request/response validation with Pydantic
+   - Error handling and CORS middleware
+
+### Dependency Flow
+
+```
+API (Inbound) → Application → Domain ← Adapters (Outbound)
+                                ↑
+                              Ports (Interfaces)
+```
+
+- Dependencies point **inward** toward the domain
+- Domain has **zero** external dependencies
+- All I/O happens in adapters
+- Dependency injection configured in `app.py`
+
+### Key Workflows
+
+1. **Ingest Workflow**
+   - Create session → Upload events/cast file → Parse commands
+   - Domain service: `IngestSession`
+   - Application service: `IngestSessionService`
+
+2. **Compile Workflow**
+   - Translate commands → Generate tasks → Create role → Export artifact
+   - Domain service: `CompilePlaybook`
+   - Application service: `CompilePlaybookService`
+
+3. **Clean Workflow** (Optional)
+   - Send commands to LLM → Get cleaned versions → Update session
+   - Domain service: `CleanSession`
+   - Application service: `CleanSessionService`
 
 ### Supported Commands
 
@@ -178,10 +249,12 @@ These tools are **Linux-only** and won't install on macOS/Windows. They're in an
 - In Docker/Linux: They're automatically installed
 - To test generated roles: Use Docker or CI/CD pipeline
 
-## 📈 Roadmap
+### In Progress 🚧
+- [ ] Frontend UI for session management
+- [ ] Enhanced LLM translation for complex commands
+- [ ] Real-time terminal monitoring
 
-- [ ] Real-time terminal monitoring (Phase 2)
-- [ ] LLM-assisted translation for complex commands
+### Future 🔮
 - [ ] Support for more package managers and tools
 - [ ] Web UI for session management
 - [ ] Multi-host playbook generation

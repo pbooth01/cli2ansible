@@ -69,7 +69,7 @@ chore: update dependencies
 
 ### When to Use Agents
 
-Use Claude Code agents to streamline your workflow:
+Use Augment Code agents to streamline your workflow:
 
 #### TestAgent
 Run **before** creating PR:
@@ -105,12 +105,6 @@ Input: src/path/to/large_file.py
 ```
 
 ## 📐 Coding Conventions
-
-See detailed conventions in [docs/conventions/](docs/conventions/):
-
-- [General Code Style](docs/conventions/CODE_STYLE.md)
-- [Python Conventions](docs/conventions/python.md)
-- [Backend API](docs/conventions/backend_api.md)
 
 ### Key Principles
 
@@ -191,25 +185,9 @@ src/cli2ansible/
 
 ### When to Document
 
-- New features: Update README, add PRD
+- New features: Update README
 - API changes: Update endpoint documentation
-- Architecture decisions: Create ADR
-
-### Creating PRDs
-
-Use the template:
-
-```bash
-cp docs/prds/TEMPLATE.md docs/prds/2025-11-04-feature-name.md
-# Edit and fill in sections
-```
-
-### Creating ADRs
-
-```bash
-cp docs/decisions/ADR-TEMPLATE.md docs/decisions/ADR-0003-decision-title.md
-# Document your architectural decision
-```
+- Architecture decisions: Document in code comments or README
 
 ## 🔒 Security
 
@@ -253,7 +231,6 @@ Use GitHub Issues with:
 ## 📚 Resources
 
 - [Project README](README.md)
-- [Coding Conventions](docs/conventions/)
 - [Agent Prompts](prompts/)
 - [FastAPI Docs](https://fastapi.tiangolo.com/)
 - [SQLAlchemy Docs](https://docs.sqlalchemy.org/)

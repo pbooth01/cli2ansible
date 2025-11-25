@@ -1,21 +1,24 @@
-.PHONY: help install dev-install test lint type-check format clean docker-up docker-down docker-logs docker-clean migrate lock convert-cast
+.PHONY: help install dev-install test test-unit test-integration test-all lint type-check format clean docker-up docker-down docker-logs docker-clean migrate lock convert-cast
 
 help:
 	@echo "Available commands:"
-	@echo "  install       - Install production dependencies"
-	@echo "  dev-install   - Install development dependencies"
-	@echo "  test          - Run tests with coverage"
-	@echo "  lint          - Run linting checks"
-	@echo "  type-check    - Run MyPy type checking"
-	@echo "  format        - Format code with ruff and black"
-	@echo "  clean         - Remove build artifacts and cache"
-	@echo "  docker-up     - Start Docker services"
-	@echo "  docker-down   - Stop Docker services"
-	@echo "  docker-logs   - Show Docker logs"
-	@echo "  docker-clean  - Stop Docker services and remove volumes"
-	@echo "  migrate       - Run database migrations"
-	@echo "  lock          - Update poetry.lock file"
-	@echo "  convert-cast  - Convert .cast file to JSON (usage: make convert-cast CAST_FILE=path/to/file.cast [OUTPUT=output.json])"
+	@echo "  install          - Install production dependencies"
+	@echo "  dev-install      - Install development dependencies"
+	@echo "  test             - Run all tests with coverage"
+	@echo "  test-unit        - Run only unit tests (skip integration tests)"
+	@echo "  test-integration - Run only integration tests (requires Docker services)"
+	@echo "  test-all         - Run all tests with coverage (alias for test)"
+	@echo "  lint             - Run linting checks"
+	@echo "  type-check       - Run MyPy type checking"
+	@echo "  format           - Format code with ruff and black"
+	@echo "  clean            - Remove build artifacts and cache"
+	@echo "  docker-up        - Start Docker services"
+	@echo "  docker-down      - Stop Docker services"
+	@echo "  docker-logs      - Show Docker logs"
+	@echo "  docker-clean     - Stop Docker services and remove volumes"
+	@echo "  migrate          - Run database migrations"
+	@echo "  lock             - Update poetry.lock file"
+	@echo "  convert-cast     - Convert .cast file to JSON (usage: make convert-cast CAST_FILE=path/to/file.cast [OUTPUT=output.json])"
 
 install:
 	poetry install --only main
@@ -29,6 +32,14 @@ lock:
 
 test:
 	poetry run pytest --cov=src --cov-report=html --cov-report=term
+
+test-unit:
+	poetry run pytest -m "not integration" --cov=src --cov-report=html --cov-report=term
+
+test-integration:
+	poetry run pytest -m integration --cov=src --cov-report=html --cov-report=term
+
+test-all: test
 
 lint:
 	poetry run ruff check .

@@ -1,12 +1,12 @@
 """Shared test fixtures for API tests."""
 
 import pytest
-from cli2ansible.adapters.inbound.http.api import create_app
 from cli2ansible.adapters.outbound.db.repository import SQLAlchemyRepository
 from cli2ansible.adapters.outbound.generators.ansible_role import AnsibleRoleGenerator
 from cli2ansible.adapters.outbound.translator.rules_engine import RulesEngine
+from cli2ansible.api import create_app
+from cli2ansible.application import CompilePlaybookService, IngestSessionService
 from cli2ansible.domain.ports import ObjectStorePort
-from cli2ansible.domain.services import CompilePlaybook, IngestSession
 from fastapi.testclient import TestClient
 
 
@@ -33,6 +33,9 @@ class MockObjectStore(ObjectStorePort):
     def generate_url(self, key: str, expires_in: int = 3600) -> str:
         return f"http://mock/{key}"
 
+    def bucket_exists(self) -> bool:
+        return True
+
 
 @pytest.fixture()
 def client() -> TestClient:
@@ -43,8 +46,8 @@ def client() -> TestClient:
     translator = RulesEngine()
     generator = AnsibleRoleGenerator()
 
-    ingest = IngestSession(repo)
-    compile_svc = CompilePlaybook(repo, translator, generator, store)
+    ingest = IngestSessionService(repo)
+    compile_svc = CompilePlaybookService(repo, translator, generator, store)
 
     app = create_app(ingest, compile_svc)
     return TestClient(app)

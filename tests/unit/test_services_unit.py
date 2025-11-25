@@ -1,13 +1,13 @@
-"""Unit tests for domain services."""
+"""Unit tests for application services."""
+
 
 import pytest
 from cli2ansible.adapters.outbound.db.repository import SQLAlchemyRepository
-from cli2ansible.domain.models import Event
-from cli2ansible.domain.services import IngestSession
+from cli2ansible.application import IngestSessionService
 
 
 @pytest.fixture()
-def repo():
+def repo() -> SQLAlchemyRepository:
     """Create in-memory repository for testing."""
     repo = SQLAlchemyRepository("sqlite:///:memory:")
     repo.create_tables()
@@ -15,41 +15,45 @@ def repo():
 
 
 @pytest.fixture()
-def ingest_service(repo):
-    """Create IngestSession service."""
-    return IngestSession(repo)
+def ingest_service(repo: SQLAlchemyRepository) -> IngestSessionService:
+    """Create IngestSessionService."""
+    return IngestSessionService(repo)
 
 
-def test_extract_commands_with_newlines(ingest_service, repo):
+def test_extract_commands_with_newlines(
+    ingest_service: IngestSessionService, repo: SQLAlchemyRepository
+) -> None:
     """Test extract_commands with events that contain newlines."""
+    from cli2ansible.application.dtos import SessionCreateRequestDTO
+
     # Create session
-    session = ingest_service.create_session("test-session")
+    req = SessionCreateRequestDTO(name="test-session", metadata={})
+    session_dto = ingest_service.create_session(req)
+    session_id = session_dto.id
 
     # Create events with newlines
-    events = [
-        Event(
-            session_id=session.id,
+    from cli2ansible.application.dtos import EventCreateRequestDTO
+
+    events_dto = [
+        EventCreateRequestDTO(
             timestamp=0.001,
             event_type="o",
             data="mkdir test_1\n",
             sequence=0,
         ),
-        Event(
-            session_id=session.id,
+        EventCreateRequestDTO(
             timestamp=0.002,
             event_type="o",
             data="cd test_1\n",
             sequence=1,
         ),
-        Event(
-            session_id=session.id,
+        EventCreateRequestDTO(
             timestamp=0.003,
             event_type="o",
             data='echo "Hello Phillip"\n',
             sequence=2,
         ),
-        Event(
-            session_id=session.id,
+        EventCreateRequestDTO(
             timestamp=0.004,
             event_type="o",
             data="exit\n",
@@ -58,10 +62,10 @@ def test_extract_commands_with_newlines(ingest_service, repo):
     ]
 
     # Save events
-    ingest_service.save_events(session.id, events)
+    ingest_service.save_events(session_id, events_dto)
 
     # Extract commands
-    commands = ingest_service.extract_commands(session.id)
+    commands = ingest_service.extract_commands(session_id)
 
     # Verify commands were extracted
     assert len(commands) > 0
@@ -69,36 +73,38 @@ def test_extract_commands_with_newlines(ingest_service, repo):
     print(f"Extracted commands: {command_texts}")
 
 
-def test_extract_commands_without_newlines(ingest_service, repo):
+def test_extract_commands_without_newlines(
+    ingest_service: IngestSessionService, repo: SQLAlchemyRepository
+) -> None:
     """Test extract_commands with events that DON'T contain newlines."""
+    from cli2ansible.application.dtos import EventCreateRequestDTO, SessionCreateRequestDTO
+
     # Create session
-    session = ingest_service.create_session("test-session")
+    req = SessionCreateRequestDTO(name="test-session", metadata={})
+    session_dto = ingest_service.create_session(req)
+    session_id = session_dto.id
 
     # Create events WITHOUT newlines (like the user's example)
-    events = [
-        Event(
-            session_id=session.id,
+    events_dto = [
+        EventCreateRequestDTO(
             timestamp=0.001,
             event_type="o",
             data="mkdir test_1",
             sequence=0,
         ),
-        Event(
-            session_id=session.id,
+        EventCreateRequestDTO(
             timestamp=0.001,
             event_type="o",
             data="cd test_1",
             sequence=1,
         ),
-        Event(
-            session_id=session.id,
+        EventCreateRequestDTO(
             timestamp=0.0,
             event_type="o",
             data='echo "Hello Phillip"',
             sequence=2,
         ),
-        Event(
-            session_id=session.id,
+        EventCreateRequestDTO(
             timestamp=0.001,
             event_type="o",
             data="exit",
@@ -107,10 +113,10 @@ def test_extract_commands_without_newlines(ingest_service, repo):
     ]
 
     # Save events
-    ingest_service.save_events(session.id, events)
+    ingest_service.save_events(session_id, events_dto)
 
     # Extract commands
-    commands = ingest_service.extract_commands(session.id)
+    commands = ingest_service.extract_commands(session_id)
 
     # Verify commands were extracted correctly
     print(f"Commands extracted: {len(commands)}")

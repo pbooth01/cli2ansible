@@ -4,7 +4,7 @@ import json
 import re
 from uuid import UUID
 
-from cli2ansible.domain.models import Event
+from cli2ansible.domain.entities import Event
 from cli2ansible.domain.ports import CapturePort
 
 # ANSI escape sequence pattern

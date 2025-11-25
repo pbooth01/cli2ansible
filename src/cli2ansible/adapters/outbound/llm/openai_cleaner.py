@@ -5,7 +5,7 @@ from typing import Any
 from uuid import UUID
 
 import httpx
-from cli2ansible.domain.models import CleanedCommand, CleaningReport, Command
+from cli2ansible.domain.entities import CleanedCommand, CleaningReport, Command
 from cli2ansible.domain.ports import LLMPort
 
 

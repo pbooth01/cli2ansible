@@ -1,6 +1,3 @@
-"""Application composition root."""
-
-from cli2ansible.adapters.inbound.http.api import create_app
 from cli2ansible.adapters.outbound.capture.asciinema_parser import AsciinemaParser
 from cli2ansible.adapters.outbound.db.repository import SQLAlchemyRepository
 from cli2ansible.adapters.outbound.generators.ansible_role import AnsibleRoleGenerator
@@ -8,8 +5,13 @@ from cli2ansible.adapters.outbound.llm.anthropic_cleaner import AnthropicCleaner
 from cli2ansible.adapters.outbound.llm.openai_cleaner import OpenAICleaner
 from cli2ansible.adapters.outbound.object_store.s3_store import S3ObjectStore
 from cli2ansible.adapters.outbound.translator.rules_engine import RulesEngine
+from cli2ansible.api import create_app
+from cli2ansible.application import (
+    CleanSessionService,
+    CompilePlaybookService,
+    IngestSessionService,
+)
 from cli2ansible.domain.ports import LLMPort
-from cli2ansible.domain.services import CleanSession, CompilePlaybook, IngestSession
 from cli2ansible.settings import settings
 
 # Global instances (for dependency injection)
@@ -55,24 +57,28 @@ def get_llm_cleaner() -> LLMPort:
                 raise ValueError("ANTHROPIC_API_KEY not configured")
             _llm_cleaner = AnthropicCleaner(api_key=settings.anthropic_api_key)
         else:
-            raise ValueError(f"Unknown LLM provider: {provider}. Must be 'anthropic' or 'openai'")
+            raise ValueError(
+                f"Unknown LLM provider: {provider}. Must be 'anthropic' or 'openai'"
+            )
 
     return _llm_cleaner
 
 
-def create_services() -> tuple[IngestSession, CompilePlaybook, CleanSession | None]:
-    """Create domain services with dependencies."""
+def create_services() -> (
+    tuple[IngestSessionService, CompilePlaybookService, CleanSessionService | None]
+):
+    """Create application services with dependencies."""
     repo = get_repository()
     store = get_object_store()
     translator = RulesEngine()
     generator = AnsibleRoleGenerator()
     parser = AsciinemaParser()
 
-    ingest_service = IngestSession(repo, parser, store)
-    compile_service = CompilePlaybook(repo, translator, generator, store)
+    ingest_service = IngestSessionService(repo, parser, store)
+    compile_service = CompilePlaybookService(repo, translator, generator, store)
 
     # Only create clean service if LLM is configured
-    clean_service: CleanSession | None = None
+    clean_service: CleanSessionService | None = None
     provider = settings.llm_provider.lower()
 
     # Check if appropriate API key is configured
@@ -85,7 +91,7 @@ def create_services() -> tuple[IngestSession, CompilePlaybook, CleanSession | No
 
     if has_api_key:
         llm = get_llm_cleaner()
-        clean_service = CleanSession(repo, llm)
+        clean_service = CleanSessionService(repo, llm)
 
     return ingest_service, compile_service, clean_service
 

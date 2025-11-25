@@ -1,6 +1,6 @@
 """Unit tests for domain models."""
 
-from cli2ansible.domain.models import Session, SessionStatus, Task, TaskConfidence
+from cli2ansible.domain.entities import Session, SessionStatus, Task, TaskConfidence
 
 
 def test_session_creation() -> None:

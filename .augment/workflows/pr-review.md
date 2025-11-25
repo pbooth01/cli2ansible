@@ -48,7 +48,7 @@ To manually review a PR using Augment Agent:
 ## Review Checklist
 
 ### 1. Code Quality
-- [ ] Follows project coding conventions (see `docs/conventions/CODE_STYLE.md`)
+- [ ] Follows project coding conventions
 - [ ] No code smells or anti-patterns
 - [ ] Proper error handling
 - [ ] Clear variable and function names

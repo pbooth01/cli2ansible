@@ -32,13 +32,6 @@ Implement a new feature to add rate limiting to API endpoints.
 Follow .augment/workflows/implement-feature.md
 ```
 
-**From PRD:**
-```
-Implement the feature in docs/prds/rate-limiting.md
-
-Follow .augment/workflows/implement-feature.md
-```
-
 ### Fix Failing Tests
 
 ```
@@ -288,4 +281,3 @@ Create a tasklist for this work and mark each step complete
 - [Full Documentation](.augment/README.md)
 - [PR Review Workflow](.augment/workflows/pr-review.md)
 - [Feature Implementation](.augment/workflows/implement-feature.md)
-- [Project Conventions](../docs/conventions/)

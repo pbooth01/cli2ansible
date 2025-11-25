@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 from cli2ansible.adapters.outbound.generators.ansible_role import AnsibleRoleGenerator
-from cli2ansible.domain.models import Role, Task, TaskConfidence
+from cli2ansible.domain.entities import Role, Task, TaskConfidence
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))

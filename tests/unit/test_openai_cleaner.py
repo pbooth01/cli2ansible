@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 from cli2ansible.adapters.outbound.llm.openai_cleaner import OpenAICleaner
-from cli2ansible.domain.models import Command
+from cli2ansible.domain.entities import Command
 
 
 @pytest.fixture()

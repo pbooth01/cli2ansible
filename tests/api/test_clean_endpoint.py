@@ -1,15 +1,19 @@
 """API tests for the /clean endpoint."""
 
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
-from cli2ansible.adapters.inbound.http.api import create_app
 from cli2ansible.adapters.outbound.db.repository import SQLAlchemyRepository
 from cli2ansible.adapters.outbound.generators.ansible_role import AnsibleRoleGenerator
 from cli2ansible.adapters.outbound.translator.rules_engine import RulesEngine
-from cli2ansible.domain.models import CleanedCommand, CleaningReport, Command
+from cli2ansible.api import create_app
+from cli2ansible.application import (
+    CleanSessionService,
+    CompilePlaybookService,
+    IngestSessionService,
+)
+from cli2ansible.domain.entities import CleanedCommand, CleaningReport, Command
 from cli2ansible.domain.ports import LLMPort, ObjectStorePort
-from cli2ansible.domain.services import CleanSession, CompilePlaybook, IngestSession
 from fastapi.testclient import TestClient
 
 
@@ -40,7 +44,7 @@ class MockLLMPort(LLMPort):
     """Mock LLM port for testing."""
 
     def clean_commands(
-        self, commands: list[Command], session_id: object
+        self, commands: list[Command], session_id: UUID
     ) -> tuple[list[CleanedCommand], CleaningReport]:
         """Mock implementation of clean_commands."""
         if not commands:
@@ -97,9 +101,9 @@ def client_with_clean_service() -> TestClient:
     generator = AnsibleRoleGenerator()
     mock_llm = MockLLMPort()
 
-    ingest = IngestSession(repo)
-    compile_svc = CompilePlaybook(repo, translator, generator, store)
-    clean_svc = CleanSession(repo, mock_llm)
+    ingest = IngestSessionService(repo)
+    compile_svc = CompilePlaybookService(repo, translator, generator, store)
+    clean_svc = CleanSessionService(repo, mock_llm)
 
     app = create_app(ingest, compile_svc, clean_svc)
     return TestClient(app)
@@ -114,8 +118,8 @@ def client_without_clean_service() -> TestClient:
     translator = RulesEngine()
     generator = AnsibleRoleGenerator()
 
-    ingest = IngestSession(repo)
-    compile_svc = CompilePlaybook(repo, translator, generator, store)
+    ingest = IngestSessionService(repo)
+    compile_svc = CompilePlaybookService(repo, translator, generator, store)
 
     app = create_app(ingest, compile_svc, clean_service=None)
     return TestClient(app)
@@ -125,7 +129,7 @@ def test_clean_session_endpoint_success(client_with_clean_service: TestClient) -
     """Test POST /sessions/{session_id}/clean with valid session."""
     # Arrange: Create session with commands
     create_resp = client_with_clean_service.post(
-        "/sessions", json={"name": "test-session", "metadata": {}}
+        "/api/v1/sessions", json={"name": "test-session", "metadata": {}}
     )
     session_id = create_resp.json()["id"]
 
@@ -150,10 +154,10 @@ def test_clean_session_endpoint_success(client_with_clean_service: TestClient) -
             "sequence": 2,
         },
     ]
-    client_with_clean_service.post(f"/sessions/{session_id}/events", json=events)
+    client_with_clean_service.post(f"/api/v1/sessions/{session_id}/events", json=events)
 
     # Act: Clean session
-    response = client_with_clean_service.post(f"/sessions/{session_id}/clean")
+    response = client_with_clean_service.post(f"/api/v1/sessions/{session_id}/clean")
 
     # Assert
     assert response.status_code == 200
@@ -179,7 +183,7 @@ def test_clean_session_with_duplicate_removal(
     """Test that duplicates are properly detected and reported."""
     # Arrange: Create session with duplicate commands
     create_resp = client_with_clean_service.post(
-        "/sessions", json={"name": "test-session", "metadata": {}}
+        "/api/v1/sessions", json={"name": "test-session", "metadata": {}}
     )
     session_id = create_resp.json()["id"]
 
@@ -189,10 +193,10 @@ def test_clean_session_with_duplicate_removal(
         {"timestamp": 2.0, "event_type": "o", "data": "echo hello\n", "sequence": 1},
         {"timestamp": 3.0, "event_type": "o", "data": "echo hello\n", "sequence": 2},
     ]
-    client_with_clean_service.post(f"/sessions/{session_id}/events", json=events)
+    client_with_clean_service.post(f"/api/v1/sessions/{session_id}/events", json=events)
 
     # Act
-    response = client_with_clean_service.post(f"/sessions/{session_id}/clean")
+    response = client_with_clean_service.post(f"/api/v1/sessions/{session_id}/clean")
 
     # Assert
     assert response.status_code == 200
@@ -208,7 +212,9 @@ def test_clean_session_not_found(client_with_clean_service: TestClient) -> None:
     """Test POST /clean with non-existent session returns 404."""
     # Act
     fake_session_id = uuid4()
-    response = client_with_clean_service.post(f"/sessions/{fake_session_id}/clean")
+    response = client_with_clean_service.post(
+        f"/api/v1/sessions/{fake_session_id}/clean"
+    )
 
     # Assert
     assert response.status_code == 404
@@ -221,12 +227,12 @@ def test_clean_session_without_service_configured(
     """Test POST /clean when clean service is not configured returns 503."""
     # Arrange: Create session (service exists but clean_service is None)
     create_resp = client_without_clean_service.post(
-        "/sessions", json={"name": "test-session", "metadata": {}}
+        "/api/v1/sessions", json={"name": "test-session", "metadata": {}}
     )
     session_id = create_resp.json()["id"]
 
     # Act
-    response = client_without_clean_service.post(f"/sessions/{session_id}/clean")
+    response = client_without_clean_service.post(f"/api/v1/sessions/{session_id}/clean")
 
     # Assert
     assert response.status_code == 503
@@ -239,19 +245,14 @@ def test_clean_empty_session(client_with_clean_service: TestClient) -> None:
     """Test cleaning a session with no commands."""
     # Arrange: Create empty session
     create_resp = client_with_clean_service.post(
-        "/sessions", json={"name": "empty-session", "metadata": {}}
+        "/api/v1/sessions", json={"name": "empty-session", "metadata": {}}
     )
     session_id = create_resp.json()["id"]
 
     # Act: Clean without uploading any events
-    response = client_with_clean_service.post(f"/sessions/{session_id}/clean")
+    response = client_with_clean_service.post(f"/api/v1/sessions/{session_id}/clean")
 
-    # Assert
-    assert response.status_code == 200
+    # Assert - should return 400 Bad Request
+    assert response.status_code == 400
     data = response.json()
-
-    assert len(data["cleaned_commands"]) == 0
-    assert data["report"]["original_command_count"] == 0
-    assert data["report"]["cleaned_command_count"] == 0
-    assert data["report"]["duplicates_removed"] == 0
-    assert data["report"]["error_corrections_removed"] == 0
+    assert "No commands to clean" in data["detail"]
