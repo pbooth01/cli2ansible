@@ -93,10 +93,7 @@ jobs:
             - Provide actionable feedback with code suggestions where appropriate
           rules: |
             [
-              ".augment/rules/architecture.md",
               ".augment/rules/code-quality.md",
               ".augment/rules/security.md",
               ".augment/rules/testing.md",
-              ".augment/rules/documentation.md",
-              ".augment/rules/performance.md"
             ]
