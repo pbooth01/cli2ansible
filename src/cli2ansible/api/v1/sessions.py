@@ -65,9 +65,7 @@ def create_router(
         """
         from cli2ansible.application.dtos import SessionCreateRequestDTO
 
-        request_dto = SessionCreateRequestDTO(
-            name=req.name, metadata=req.metadata or {}
-        )
+        request_dto = SessionCreateRequestDTO(name=req.name, metadata=req.metadata or {})
         return ingest_service.create_session(request_dto)
 
     @router.get("", tags=["sessions"])

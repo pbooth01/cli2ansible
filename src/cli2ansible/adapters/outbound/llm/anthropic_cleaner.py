@@ -38,10 +38,7 @@ class AnthropicCleaner(LLMPort):
     def _build_prompt(self, commands: list[Command]) -> str:
         """Build the prompt for Claude."""
         cmd_list = "\n".join(
-            [
-                f"{i+1}. {cmd.raw} (timestamp: {cmd.timestamp})"
-                for i, cmd in enumerate(commands)
-            ]
+            [f"{i+1}. {cmd.raw} (timestamp: {cmd.timestamp})" for i, cmd in enumerate(commands)]
         )
 
         return f"""Analyze the following terminal session commands and identify which ones are essential.
@@ -140,9 +137,7 @@ Focus on:
         # Process essential commands
         for cmd_data in data.get("essential_commands", []):
             idx = cmd_data.get("first_occurrence_index", 0)
-            original_cmd = (
-                original_commands[idx] if idx < len(original_commands) else None
-            )
+            original_cmd = original_commands[idx] if idx < len(original_commands) else None
 
             if original_cmd:
                 cleaned_commands.append(

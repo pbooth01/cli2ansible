@@ -1,0 +1,128 @@
+name: Build Failure Analyzer
+
+on:
+  workflow_run:
+    workflows: ["ci"]
+    types:
+      - completed
+
+jobs:
+  analyze-failure:
+    runs-on: ubuntu-latest
+    # Only run if the CI workflow failed and it was triggered by a pull request
+    if: ${{ github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.event == 'pull_request' }}
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
+
+      - name: Get failed workflow run details
+        id: get-run-info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runId = context.payload.workflow_run.id;
+
+            // Get the jobs for this workflow run
+            const jobs = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: runId
+            });
+
+            // Find failed jobs
+            const failedJobs = jobs.data.jobs.filter(job => job.conclusion === 'failure');
+
+            if (failedJobs.length === 0) {
+              core.setOutput('has_failures', 'false');
+              return;
+            }
+
+            core.setOutput('has_failures', 'true');
+            core.setOutput('run_id', runId);
+            core.setOutput('failed_job_ids', JSON.stringify(failedJobs.map(j => j.id)));
+            core.setOutput('failed_job_names', failedJobs.map(j => j.name).join(', '));
+
+      - name: Download workflow logs
+        if: steps.get-run-info.outputs.has_failures == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const runId = ${{ steps.get-run-info.outputs.run_id }};
+            const failedJobIds = JSON.parse('${{ steps.get-run-info.outputs.failed_job_ids }}');
+
+            let allLogs = '';
+
+            for (const jobId of failedJobIds) {
+              try {
+                const logs = await github.rest.actions.downloadJobLogsForWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  job_id: jobId
+                });
+
+                allLogs += `\n\n=== Logs for Job ID: ${jobId} ===\n\n`;
+                allLogs += logs.data;
+              } catch (error) {
+                allLogs += `\n\n=== Failed to fetch logs for Job ID: ${jobId} ===\n`;
+                allLogs += `Error: ${error.message}\n`;
+              }
+            }
+
+            // Write logs to file for Augment to read
+            fs.writeFileSync('build-failure-logs.txt', allLogs);
+            console.log('Logs written to build-failure-logs.txt');
+
+      - name: Get PR number from workflow run
+        if: steps.get-run-info.outputs.has_failures == 'true'
+        id: get-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Get PR associated with this workflow run
+            const headSha = context.payload.workflow_run.head_sha;
+            const headBranch = context.payload.workflow_run.head_branch;
+
+            const prs = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${headBranch}`,
+              state: 'open'
+            });
+
+            if (prs.data.length > 0) {
+              core.setOutput('pr_number', prs.data[0].number);
+              core.setOutput('has_pr', 'true');
+            } else {
+              core.setOutput('has_pr', 'false');
+            }
+
+      - name: Analyze failure and submit fix
+        if: steps.get-run-info.outputs.has_failures == 'true' && steps.get-pr.outputs.has_pr == 'true'
+        uses: augmentcode/augment-agent@main
+        with:
+          augment_session_auth: ${{ secrets.AUGMENT_SESSION_AUTH }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          instruction: |
+            The CI build has failed for PR #${{ steps.get-pr.outputs.pr_number }}.
+
+            Failed jobs: ${{ steps.get-run-info.outputs.failed_job_names }}
+
+            The build logs are available in the file `build-failure-logs.txt` in the repository root.
+
+            Please:
+            1. Read and analyze the build failure logs in `build-failure-logs.txt`
+            2. Identify the root cause of the failure (lint errors, type errors, test failures, etc.)
+            3. Implement the necessary fixes to resolve the build failure
+            4. Commit the fixes directly to the branch for PR #${{ steps.get-pr.outputs.pr_number }}
+            5. Add a comment to PR #${{ steps.get-pr.outputs.pr_number }} explaining what was fixed
+
+            Do NOT create a new PR - push the fix directly to the existing PR branch.

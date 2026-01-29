@@ -135,9 +135,7 @@ class CompilePlaybookService(CompilePlaybookUseCase):
             report.medium_confidence_percentage = (
                 report.medium_confidence / report.total_commands
             ) * 100
-            report.low_confidence_percentage = (
-                report.low_confidence / report.total_commands
-            ) * 100
+            report.low_confidence_percentage = (report.low_confidence / report.total_commands) * 100
 
         # Calculate session duration
         if commands:
@@ -210,9 +208,7 @@ class CompilePlaybookService(CompilePlaybookUseCase):
             report.medium_confidence_percentage = (
                 report.medium_confidence / report.total_commands
             ) * 100
-            report.low_confidence_percentage = (
-                report.low_confidence / report.total_commands
-            ) * 100
+            report.low_confidence_percentage = (report.low_confidence / report.total_commands) * 100
 
         # Calculate session duration
         if commands:

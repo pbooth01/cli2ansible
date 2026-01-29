@@ -182,9 +182,7 @@ class BatchEventUpdate(BaseModel):
 class BatchEventUpdateRequest(BaseModel):
     """Request schema for batch event updates."""
 
-    updates: list[BatchEventUpdate] = Field(
-        ..., description="List of event updates", min_length=1
-    )
+    updates: list[BatchEventUpdate] = Field(..., description="List of event updates", min_length=1)
 
 
 class EventUpdateResult(BaseModel):

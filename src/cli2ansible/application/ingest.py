@@ -160,15 +160,11 @@ class IngestSessionService(IngestSessionUseCase):
         try:
             compile_service.compile(session_id)
         except Exception as e:
-            logger.warning(
-                f"Auto-compile after cast upload for session {session_id} failed: {e}"
-            )
+            logger.warning(f"Auto-compile after cast upload for session {session_id} failed: {e}")
 
         return events
 
-    def save_events(
-        self, session_id: UUID, events: list[EventCreateRequestDTO]
-    ) -> None:
+    def save_events(self, session_id: UUID, events: list[EventCreateRequestDTO]) -> None:
         """Save events for a session."""
         session = self.repo.get(session_id)
         if not session:

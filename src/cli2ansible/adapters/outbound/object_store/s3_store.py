@@ -41,13 +41,9 @@ class S3ObjectStore(ObjectStorePort):
         except ClientError:
             return False
 
-    def upload(
-        self, key: str, data: bytes, content_type: str = "application/octet-stream"
-    ) -> str:
+    def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
         """Upload artifact and return URL."""
-        self.client.put_object(
-            Bucket=self.bucket, Key=key, Body=data, ContentType=content_type
-        )
+        self.client.put_object(Bucket=self.bucket, Key=key, Body=data, ContentType=content_type)
         return f"{self.bucket}/{key}"
 
     def download(self, key: str) -> bytes:
@@ -60,9 +56,7 @@ class S3ObjectStore(ObjectStorePort):
             raise ObjectNotFoundError(f"Object not found: {key}") from e
         except ClientError as e:
             error_code = e.response.get("Error", {}).get("Code", "Unknown")
-            raise ObjectStoreError(
-                f"Failed to download object {key}: {error_code}"
-            ) from e
+            raise ObjectStoreError(f"Failed to download object {key}: {error_code}") from e
         except Exception as e:
             raise ObjectStoreError(f"Unexpected error downloading {key}") from e
 

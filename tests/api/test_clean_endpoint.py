@@ -23,9 +23,7 @@ class MockObjectStore(ObjectStorePort):
     def __init__(self) -> None:
         self.storage: dict[str, bytes] = {}
 
-    def upload(
-        self, key: str, data: bytes, content_type: str = "application/octet-stream"
-    ) -> str:
+    def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
         self.storage[key] = data
         return key
 
@@ -212,9 +210,7 @@ def test_clean_session_not_found(client_with_clean_service: TestClient) -> None:
     """Test POST /clean with non-existent session returns 404."""
     # Act
     fake_session_id = uuid4()
-    response = client_with_clean_service.post(
-        f"/api/v1/sessions/{fake_session_id}/clean"
-    )
+    response = client_with_clean_service.post(f"/api/v1/sessions/{fake_session_id}/clean")
 
     # Assert
     assert response.status_code == 404

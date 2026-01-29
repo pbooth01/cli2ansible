@@ -30,9 +30,7 @@ def create_router(ingest_service: Any) -> APIRouter:
     router = APIRouter(prefix="/sessions", tags=["events"])
 
     @router.post("/{session_id}/events")
-    async def upload_events(
-        session_id: UUID, events: list[EventCreate]
-    ) -> dict[str, str]:
+    async def upload_events(session_id: UUID, events: list[EventCreate]) -> dict[str, str]:
         """Upload events for a session.
 
         Args:
@@ -84,9 +82,7 @@ def create_router(ingest_service: Any) -> APIRouter:
         )
 
     @router.patch("/{session_id}/events", response_model=BatchEventUpdateResponse)
-    async def update_events_batch(
-        session_id: UUID, request: BatchEventUpdateRequest
-    ) -> Any:
+    async def update_events_batch(session_id: UUID, request: BatchEventUpdateRequest) -> Any:
         """Update multiple events in a batch.
 
         This endpoint processes multiple event updates with optimistic locking
@@ -120,9 +116,7 @@ def create_router(ingest_service: Any) -> APIRouter:
                 )
 
                 # Service validates and updates event with optimistic locking
-                updated_event = ingest_service.update_event(
-                    session_id, update.id, update_dto
-                )
+                updated_event = ingest_service.update_event(session_id, update.id, update_dto)
 
                 formatted_results.append(
                     EventUpdateResult(
@@ -138,9 +132,7 @@ def create_router(ingest_service: Any) -> APIRouter:
                 )
                 failed += 1
 
-        return BatchEventUpdateResponse(
-            updated=updated, failed=failed, results=formatted_results
-        )
+        return BatchEventUpdateResponse(updated=updated, failed=failed, results=formatted_results)
 
     @router.patch("/{session_id}/events/{event_id}", response_model=EventResponse)
     async def update_single_event(

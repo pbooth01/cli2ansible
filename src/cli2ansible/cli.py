@@ -67,13 +67,9 @@ Examples:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # convert-cast subcommand
-    cast_parser = subparsers.add_parser(
-        "convert-cast", help="Convert .cast file to JSON"
-    )
+    cast_parser = subparsers.add_parser("convert-cast", help="Convert .cast file to JSON")
     cast_parser.add_argument("cast_file", help="Path to .cast file")
-    cast_parser.add_argument(
-        "-o", "--output", help="Output file (default: stdout)", default=None
-    )
+    cast_parser.add_argument("-o", "--output", help="Output file (default: stdout)", default=None)
 
     args = parser.parse_args()
 

@@ -43,9 +43,7 @@ class IngestSessionUseCase(ABC):
         ...
 
     @abstractmethod
-    def save_events(
-        self, session_id: UUID, events: list[EventCreateRequestDTO]
-    ) -> None:
+    def save_events(self, session_id: UUID, events: list[EventCreateRequestDTO]) -> None:
         """Save events for a session."""
         ...
 
