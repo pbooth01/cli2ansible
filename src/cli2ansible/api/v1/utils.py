@@ -9,7 +9,9 @@ from cli2ansible.api.schemas import (
 from cli2ansible.domain.entities import CastFile
 
 
-def session_to_response(session: Any, cast_file: CastFile | None = None) -> SessionResponse:
+def session_to_response(
+    session: Any, cast_file: CastFile | None = None
+) -> SessionResponse:
     """Convert session domain model to API response with optional cast file."""
     cast_file_response = None
     if cast_file:

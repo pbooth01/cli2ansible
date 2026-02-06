@@ -9,7 +9,9 @@ class ObjectStorePort(ABC):
     """Port for artifact storage."""
 
     @abstractmethod
-    def upload(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> str:
+    def upload(
+        self, key: str, data: bytes, content_type: str = "application/octet-stream"
+    ) -> str:
         """Upload artifact and return URL."""
         ...
 

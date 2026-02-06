@@ -64,7 +64,9 @@ class CleanSessionService(CleanSessionUseCase):
 
         # Validate we have commands
         if not commands:
-            raise BadRequestError("No commands to clean. Session has no events or commands.")
+            raise BadRequestError(
+                "No commands to clean. Session has no events or commands."
+            )
 
         # Validate command count is within limits
         if len(commands) > settings.max_commands_for_cleaning:
@@ -80,7 +82,9 @@ class CleanSessionService(CleanSessionUseCase):
         cleaned_commands, report = self._clean_with_llm(commands, session_id)
 
         return CleanSessionResponseDTO(
-            cleaned_commands=[self._cleaned_command_to_response(cmd) for cmd in cleaned_commands],
+            cleaned_commands=[
+                self._cleaned_command_to_response(cmd) for cmd in cleaned_commands
+            ],
             report=self._report_to_response(report),
         )
 

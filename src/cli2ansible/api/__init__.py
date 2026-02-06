@@ -36,7 +36,9 @@ def create_app(
 
     # Global exception handlers
     @app.exception_handler(ApplicationError)
-    async def application_error_handler(_: Request, exc: ApplicationError) -> JSONResponse:
+    async def application_error_handler(
+        _: Request, exc: ApplicationError
+    ) -> JSONResponse:
         """Handle application layer errors with RFC7807 style responses."""
         payload = {
             "type": f"https://errors.cli2ansible.com/{exc.code}",

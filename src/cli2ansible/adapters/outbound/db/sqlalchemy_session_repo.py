@@ -67,9 +67,13 @@ class SQLAlchemySessionRepo(SessionRepositoryPort):
         """Delete a session and all related data."""
         with self.SessionLocal() as db:
             # Delete related cast files
-            db.execute(delete(CastFileORM).where(CastFileORM.session_id == str(session_id)))
+            db.execute(
+                delete(CastFileORM).where(CastFileORM.session_id == str(session_id))
+            )
             # Delete related commands
-            db.execute(delete(CommandORM).where(CommandORM.session_id == str(session_id)))
+            db.execute(
+                delete(CommandORM).where(CommandORM.session_id == str(session_id))
+            )
             # Delete related events
             db.execute(delete(EventORM).where(EventORM.session_id == str(session_id)))
             # Delete the session

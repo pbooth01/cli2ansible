@@ -7,7 +7,9 @@ from fastapi.testclient import TestClient
 def test_get_report_includes_enhanced_statistics(client: TestClient) -> None:
     """Test that report endpoint returns enhanced statistics."""
     # Create session
-    create_resp = client.post("/api/v1/sessions", json={"name": "test-session", "metadata": {}})
+    create_resp = client.post(
+        "/api/v1/sessions", json={"name": "test-session", "metadata": {}}
+    )
     session_id = create_resp.json()["id"]
 
     # Upload events with commands
@@ -79,7 +81,9 @@ def test_get_report_includes_enhanced_statistics(client: TestClient) -> None:
 def test_get_report_handles_missing_commands(client: TestClient) -> None:
     """Test that report endpoint handles sessions without commands."""
     # Create session
-    create_resp = client.post("/api/v1/sessions", json={"name": "test-session", "metadata": {}})
+    create_resp = client.post(
+        "/api/v1/sessions", json={"name": "test-session", "metadata": {}}
+    )
     session_id = create_resp.json()["id"]
 
     # Try to get report without commands
@@ -93,7 +97,9 @@ def test_get_report_handles_missing_commands(client: TestClient) -> None:
 def test_get_report_auto_extracts_commands(client: TestClient) -> None:
     """Test that report endpoint automatically extracts commands if needed."""
     # Create session
-    create_resp = client.post("/api/v1/sessions", json={"name": "test-session", "metadata": {}})
+    create_resp = client.post(
+        "/api/v1/sessions", json={"name": "test-session", "metadata": {}}
+    )
     session_id = create_resp.json()["id"]
 
     # Upload events but don't compile
@@ -134,7 +140,9 @@ def test_get_report_returns_404_for_nonexistent_session(client: TestClient) -> N
 def test_get_report_percentages_sum_to_100(client: TestClient) -> None:
     """Test that confidence percentages are calculated correctly."""
     # Create session
-    create_resp = client.post("/api/v1/sessions", json={"name": "test-session", "metadata": {}})
+    create_resp = client.post(
+        "/api/v1/sessions", json={"name": "test-session", "metadata": {}}
+    )
     session_id = create_resp.json()["id"]
 
     # Upload events with mix of command types
@@ -180,7 +188,9 @@ def test_get_report_percentages_sum_to_100(client: TestClient) -> None:
 def test_get_report_most_common_commands_format(client: TestClient) -> None:
     """Test that most_common_commands is in the correct format."""
     # Create session
-    create_resp = client.post("/api/v1/sessions", json={"name": "test-session", "metadata": {}})
+    create_resp = client.post(
+        "/api/v1/sessions", json={"name": "test-session", "metadata": {}}
+    )
     session_id = create_resp.json()["id"]
 
     # Upload events with duplicate commands

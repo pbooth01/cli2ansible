@@ -20,7 +20,9 @@ def create_v1_router(
     router.include_router(health.router)
 
     # Include consolidated sessions router (CRUD + compile + report + clean)
-    router.include_router(create_sessions_router(ingest_service, compile_service, clean_service))
+    router.include_router(
+        create_sessions_router(ingest_service, compile_service, clean_service)
+    )
 
     # Include cast file router
     router.include_router(create_cast_router(ingest_service, compile_service))
