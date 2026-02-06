@@ -45,7 +45,7 @@ def check_prerequisites():
     print("\n🔍 Checking prerequisites...\n")
 
     # Check Python version
-    if sys.version_info < (3, 11):
+    if sys.version_info < (3, 11):  # noqa: UP036
         print(f"❌ Python 3.11+ required, found {sys.version}")
         return False
     print(f"  ✓ Python {sys.version_info.major}.{sys.version_info.minor}")
@@ -62,24 +62,24 @@ def check_prerequisites():
 def install_dependencies(clean=False):
     """Install Python dependencies with Poetry."""
     print("\n📦 Installing dependencies...\n")
-    
+
     if clean:
         venv_path = Path(".venv")
         if venv_path.exists():
             print("→ Removing existing virtual environment...")
             shutil.rmtree(venv_path)
-    
+
     success, _ = run_command(["poetry", "install"], "Installing dependencies")
     if not success:
         return False
-    
+
     return True
 
 
 def start_docker_services():
     """Start Docker services."""
     print("\n🐳 Starting Docker services...\n")
-    
+
     # Check if docker-compose is available
     success, _ = run_command(["docker", "compose", "version"], "Checking Docker Compose", check=False)
     if not success:
@@ -90,12 +90,12 @@ def start_docker_services():
         compose_cmd = ["docker-compose"]
     else:
         compose_cmd = ["docker", "compose"]
-    
+
     # Start services
     success, _ = run_command(compose_cmd + ["up", "-d", "postgres", "minio"], "Starting Postgres and MinIO")
     if not success:
         return False
-    
+
     # Wait for services to be healthy
     print("→ Waiting for services to be healthy...")
     for _ in range(30):
@@ -106,7 +106,7 @@ def start_docker_services():
         )
         time.sleep(2)
         break  # Services started, health check is handled by docker-compose
-    
+
     print("  ✓ Docker services started")
     return True
 
@@ -114,7 +114,7 @@ def start_docker_services():
 def run_migrations():
     """Run database migrations."""
     print("\n🗃️  Running database migrations...\n")
-    
+
     success, _ = run_command(
         ["poetry", "run", "alembic", "upgrade", "head"],
         "Running Alembic migrations"
@@ -130,21 +130,19 @@ def main():
     args = parser.parse_args()
 
     print("\n🚀 Setting up cli2ansible development environment\n")
-    
+
     if not check_prerequisites():
         sys.exit(1)
-    
+
     if not install_dependencies(clean=args.clean):
         sys.exit(1)
-    
-    if not args.skip_docker:
-        if not start_docker_services():
-            print("\n⚠️  Docker services failed, continuing without them...")
-    
-    if not args.skip_docker and not args.skip_migrations:
-        if not run_migrations():
-            print("\n⚠️  Migrations failed, you may need to run them manually")
-    
+
+    if not args.skip_docker and not start_docker_services():
+        print("\n⚠️  Docker services failed, continuing without them...")
+
+    if not args.skip_docker and not args.skip_migrations and not run_migrations():
+        print("\n⚠️  Migrations failed, you may need to run them manually")
+
     print("\n✅ Development environment setup complete!\n")
     print("Next steps:")
     print("  • Run tests: make test-unit")
