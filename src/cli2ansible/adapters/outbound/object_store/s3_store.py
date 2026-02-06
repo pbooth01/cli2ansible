@@ -3,6 +3,7 @@
 import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError
+
 from cli2ansible.domain.exceptions import ObjectNotFoundError, ObjectStoreError
 from cli2ansible.domain.ports import ObjectStorePort
 

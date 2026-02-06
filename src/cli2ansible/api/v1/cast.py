@@ -5,9 +5,10 @@
 from typing import Any
 from uuid import UUID
 
+from fastapi import APIRouter, UploadFile
+
 from cli2ansible.api.schemas import CastUploadResponse
 from cli2ansible.application.errors import BadRequestError
-from fastapi import APIRouter, UploadFile
 
 
 def create_router(ingest_service: Any, compile_service: Any) -> APIRouter:

@@ -3,6 +3,8 @@
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
+
 from cli2ansible.adapters.outbound.capture.asciinema_parser import AsciinemaParser
 from cli2ansible.adapters.outbound.db.repository import SQLAlchemyRepository
 from cli2ansible.adapters.outbound.generators.ansible_role import AnsibleRoleGenerator
@@ -10,7 +12,6 @@ from cli2ansible.adapters.outbound.translator.rules_engine import RulesEngine
 from cli2ansible.api import create_app
 from cli2ansible.application import CompilePlaybookService, IngestSessionService
 from cli2ansible.domain.ports import ObjectStorePort
-from fastapi.testclient import TestClient
 
 
 class MockObjectStore(ObjectStorePort):
@@ -39,7 +40,7 @@ class MockObjectStore(ObjectStorePort):
         return True
 
 
-@pytest.fixture()
+@pytest.fixture
 def cast_client() -> TestClient:
     """Create test client with parser and store configured for cast uploads."""
     repo = SQLAlchemyRepository("sqlite:///:memory:")

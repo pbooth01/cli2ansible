@@ -2,15 +2,16 @@
 
 import logging
 
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
 from cli2ansible.application import (
     CleanSessionService,
     CompilePlaybookService,
     IngestSessionService,
 )
 from cli2ansible.application.errors import ApplicationError
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
 from .v1 import create_v1_router
 

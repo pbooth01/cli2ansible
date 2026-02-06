@@ -3,9 +3,10 @@
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import delete, select
+
 from cli2ansible.domain.entities import Command
 from cli2ansible.domain.ports.repositories import CommandRepositoryPort
-from sqlalchemy import delete, select
 
 from .sqlalchemy_orms import CommandORM
 

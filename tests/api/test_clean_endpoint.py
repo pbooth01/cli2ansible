@@ -3,6 +3,8 @@
 from uuid import UUID, uuid4
 
 import pytest
+from fastapi.testclient import TestClient
+
 from cli2ansible.adapters.outbound.db.repository import SQLAlchemyRepository
 from cli2ansible.adapters.outbound.generators.ansible_role import AnsibleRoleGenerator
 from cli2ansible.adapters.outbound.translator.rules_engine import RulesEngine
@@ -14,7 +16,6 @@ from cli2ansible.application import (
 )
 from cli2ansible.domain.entities import CleanedCommand, CleaningReport, Command
 from cli2ansible.domain.ports import LLMPort, ObjectStorePort
-from fastapi.testclient import TestClient
 
 
 class MockObjectStore(ObjectStorePort):
@@ -91,7 +92,7 @@ class MockLLMPort(LLMPort):
         return cleaned, report
 
 
-@pytest.fixture()
+@pytest.fixture
 def client_with_clean_service() -> TestClient:
     """Create test client with clean service enabled."""
     repo = SQLAlchemyRepository("sqlite:///:memory:")
@@ -109,7 +110,7 @@ def client_with_clean_service() -> TestClient:
     return TestClient(app)
 
 
-@pytest.fixture()
+@pytest.fixture
 def client_without_clean_service() -> TestClient:
     """Create test client without clean service (simulating missing API key)."""
     repo = SQLAlchemyRepository("sqlite:///:memory:")
