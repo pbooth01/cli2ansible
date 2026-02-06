@@ -27,16 +27,20 @@ python3 .augment/skills/dev-setup/scripts/setup.py
 
 - `--skip-docker`: Skip starting Docker services
 - `--skip-migrations`: Skip running database migrations
+- `--skip-servers`: Skip starting backend and frontend servers
 - `--clean`: Remove existing virtual environment and start fresh
 
 ### Examples
 
 ```bash
-# Full setup (dependencies + docker + migrations)
+# Full setup (dependencies + docker + migrations + servers)
 python3 .augment/skills/dev-setup/scripts/setup.py
 
-# Only install dependencies (skip docker and migrations)
-python3 .augment/skills/dev-setup/scripts/setup.py --skip-docker --skip-migrations
+# Only install dependencies (skip docker, migrations, and servers)
+python3 .augment/skills/dev-setup/scripts/setup.py --skip-docker --skip-migrations --skip-servers
+
+# Setup infrastructure only (no app servers)
+python3 .augment/skills/dev-setup/scripts/setup.py --skip-servers
 
 # Clean setup (remove venv and reinstall everything)
 python3 .augment/skills/dev-setup/scripts/setup.py --clean
@@ -55,6 +59,15 @@ python3 .augment/skills/dev-setup/scripts/setup.py --clean
 
 3. **Database Migrations** (unless skipped):
    - Runs Alembic migrations to set up the database schema
+
+4. **Backend Server** (unless skipped):
+   - Starts FastAPI with uvicorn on port 8000
+   - Logs output to `.augment/logs/backend.log`
+
+5. **Frontend Server** (unless skipped):
+   - Installs npm dependencies if needed
+   - Starts Next.js dev server on port 3000
+   - Logs output to `.augment/logs/frontend.log`
 
 ## Prerequisites
 
