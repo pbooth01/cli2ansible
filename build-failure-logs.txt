@@ -1,0 +1,457 @@
+
+
+=== Logs for Job ID: 62757972635 ===
+
+2026-02-06T14:16:43.5438274Z Current runner version: '2.331.0'
+2026-02-06T14:16:43.5498007Z ##[group]Runner Image Provisioner
+2026-02-06T14:16:43.5499279Z Hosted Compute Agent
+2026-02-06T14:16:43.5500477Z Version: 20260123.484
+2026-02-06T14:16:43.5501562Z Commit: 6bd6555ca37d84114959e1c76d2c01448ff61c5d
+2026-02-06T14:16:43.5502762Z Build Date: 2026-01-23T19:41:17Z
+2026-02-06T14:16:43.5504093Z Worker ID: {d6be2f3d-ceff-4868-a0d5-f8383d6d1943}
+2026-02-06T14:16:43.5505240Z Azure Region: northcentralus
+2026-02-06T14:16:43.5506169Z ##[endgroup]
+2026-02-06T14:16:43.5509307Z ##[group]Operating System
+2026-02-06T14:16:43.5510270Z Ubuntu
+2026-02-06T14:16:43.5511067Z 24.04.3
+2026-02-06T14:16:43.5511993Z LTS
+2026-02-06T14:16:43.5512830Z ##[endgroup]
+2026-02-06T14:16:43.5513754Z ##[group]Runner Image
+2026-02-06T14:16:43.5514849Z Image: ubuntu-24.04
+2026-02-06T14:16:43.5515741Z Version: 20260201.15.1
+2026-02-06T14:16:43.5558389Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260201.15/images/ubuntu/Ubuntu2404-Readme.md
+2026-02-06T14:16:43.5561067Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260201.15
+2026-02-06T14:16:43.5562831Z ##[endgroup]
+2026-02-06T14:16:43.5564786Z ##[group]GITHUB_TOKEN Permissions
+2026-02-06T14:16:43.5568105Z Contents: read
+2026-02-06T14:16:43.5569242Z Metadata: read
+2026-02-06T14:16:43.5570154Z Packages: read
+2026-02-06T14:16:43.5570944Z ##[endgroup]
+2026-02-06T14:16:43.5574112Z Secret source: Actions
+2026-02-06T14:16:43.5575686Z Prepare workflow directory
+2026-02-06T14:16:43.6497718Z Prepare all required actions
+2026-02-06T14:16:43.6554094Z Getting action download info
+2026-02-06T14:16:44.1708278Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2026-02-06T14:16:44.2691188Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-02-06T14:16:44.3589429Z Download action repository 'snok/install-poetry@v1' (SHA:76e04a911780d5b312d89783f7b1cd627778900a)
+2026-02-06T14:16:44.6393690Z Download action repository 'actions/cache@v3' (SHA:6f8efc29b200d32929f49075959781ed54ec270c)
+2026-02-06T14:16:44.7960016Z Download action repository 'codecov/codecov-action@v5' (SHA:671740ac38dd9b0130fbe1cec585b89eea48d3de)
+2026-02-06T14:16:45.2862122Z Getting action download info
+2026-02-06T14:16:45.4441544Z Download action repository 'actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea' (SHA:60a0d83039c74a4aee543508d2ffcb1c3799cdea)
+2026-02-06T14:16:45.8259112Z Complete job name: build-python
+2026-02-06T14:16:45.8713903Z ##[group]Checking docker version
+2026-02-06T14:16:45.8726759Z ##[command]/usr/bin/docker version --format '{{.Server.APIVersion}}'
+2026-02-06T14:16:45.9659233Z '1.48'
+2026-02-06T14:16:45.9669248Z Docker daemon API version: '1.48'
+2026-02-06T14:16:45.9669772Z ##[command]/usr/bin/docker version --format '{{.Client.APIVersion}}'
+2026-02-06T14:16:45.9852346Z '1.48'
+2026-02-06T14:16:45.9864829Z Docker client API version: '1.48'
+2026-02-06T14:16:45.9872499Z ##[endgroup]
+2026-02-06T14:16:45.9876860Z ##[group]Clean up resources from previous jobs
+2026-02-06T14:16:45.9882469Z ##[command]/usr/bin/docker ps --all --quiet --no-trunc --filter "label=3d19da"
+2026-02-06T14:16:46.0039081Z ##[command]/usr/bin/docker network prune --force --filter "label=3d19da"
+2026-02-06T14:16:46.0183977Z ##[endgroup]
+2026-02-06T14:16:46.0184376Z ##[group]Create local container network
+2026-02-06T14:16:46.0194463Z ##[command]/usr/bin/docker network create --label 3d19da github_network_5ad20a5cfc7e4fb0a62c33d897cbca67
+2026-02-06T14:16:46.0969123Z b5b0cac4000b9610be5480c1e4c191449d559c6a4e3dfc60bcd07c2b773f1f94
+2026-02-06T14:16:46.0987636Z ##[endgroup]
+2026-02-06T14:16:46.1077892Z ##[group]Starting postgres service container
+2026-02-06T14:16:46.1105282Z ##[command]/usr/bin/docker pull postgres:16
+2026-02-06T14:16:46.5362050Z 16: Pulling from library/postgres
+2026-02-06T14:16:46.6580846Z 0c8d55a45c0d: Pulling fs layer
+2026-02-06T14:16:46.6587053Z d7071d8cd1af: Pulling fs layer
+2026-02-06T14:16:46.6587801Z e3d994429678: Pulling fs layer
+2026-02-06T14:16:46.6588862Z 512b7ea3ac5d: Pulling fs layer
+2026-02-06T14:16:46.6589436Z c4fa1de5526b: Pulling fs layer
+2026-02-06T14:16:46.6590008Z 67efc7fd0cb7: Pulling fs layer
+2026-02-06T14:16:46.6590583Z 0b231e82c9b6: Pulling fs layer
+2026-02-06T14:16:46.6591180Z b61b9ed964eb: Pulling fs layer
+2026-02-06T14:16:46.6591798Z 279a6137838f: Pulling fs layer
+2026-02-06T14:16:46.6592423Z 7114148b339a: Pulling fs layer
+2026-02-06T14:16:46.6593027Z 71657407fe24: Pulling fs layer
+2026-02-06T14:16:46.6593621Z de1986ae4268: Pulling fs layer
+2026-02-06T14:16:46.6594190Z d730385e2e5c: Pulling fs layer
+2026-02-06T14:16:46.6594729Z 7799c133bb28: Pulling fs layer
+2026-02-06T14:16:46.6595242Z b61b9ed964eb: Waiting
+2026-02-06T14:16:46.6595704Z 279a6137838f: Waiting
+2026-02-06T14:16:46.6595995Z 7114148b339a: Waiting
+2026-02-06T14:16:46.6596521Z 71657407fe24: Waiting
+2026-02-06T14:16:46.6596847Z de1986ae4268: Waiting
+2026-02-06T14:16:46.6597167Z d730385e2e5c: Waiting
+2026-02-06T14:16:46.6597452Z 7799c133bb28: Waiting
+2026-02-06T14:16:46.6597753Z 512b7ea3ac5d: Waiting
+2026-02-06T14:16:46.6598069Z c4fa1de5526b: Waiting
+2026-02-06T14:16:46.6598375Z 67efc7fd0cb7: Waiting
+2026-02-06T14:16:46.6598660Z 0b231e82c9b6: Waiting
+2026-02-06T14:16:46.7977680Z d7071d8cd1af: Verifying Checksum
+2026-02-06T14:16:46.7979112Z d7071d8cd1af: Download complete
+2026-02-06T14:16:46.8457546Z e3d994429678: Verifying Checksum
+2026-02-06T14:16:46.8458507Z e3d994429678: Download complete
+2026-02-06T14:16:46.9100474Z 512b7ea3ac5d: Verifying Checksum
+2026-02-06T14:16:46.9102619Z 512b7ea3ac5d: Download complete
+2026-02-06T14:16:47.0215315Z c4fa1de5526b: Verifying Checksum
+2026-02-06T14:16:47.0217188Z c4fa1de5526b: Download complete
+2026-02-06T14:16:47.0218011Z 0c8d55a45c0d: Verifying Checksum
+2026-02-06T14:16:47.0218895Z 0c8d55a45c0d: Download complete
+2026-02-06T14:16:47.0581470Z 67efc7fd0cb7: Verifying Checksum
+2026-02-06T14:16:47.0583921Z 67efc7fd0cb7: Download complete
+2026-02-06T14:16:47.1301156Z 0b231e82c9b6: Verifying Checksum
+2026-02-06T14:16:47.1303650Z 0b231e82c9b6: Download complete
+2026-02-06T14:16:47.1437620Z b61b9ed964eb: Verifying Checksum
+2026-02-06T14:16:47.1449199Z b61b9ed964eb: Download complete
+2026-02-06T14:16:47.2761763Z 71657407fe24: Verifying Checksum
+2026-02-06T14:16:47.2770979Z 71657407fe24: Download complete
+2026-02-06T14:16:47.2927359Z 7114148b339a: Verifying Checksum
+2026-02-06T14:16:47.2958077Z 7114148b339a: Download complete
+2026-02-06T14:16:47.3883284Z de1986ae4268: Verifying Checksum
+2026-02-06T14:16:47.3886881Z de1986ae4268: Download complete
+2026-02-06T14:16:47.4160831Z d730385e2e5c: Verifying Checksum
+2026-02-06T14:16:47.4164753Z d730385e2e5c: Download complete
+2026-02-06T14:16:47.5597082Z 7799c133bb28: Verifying Checksum
+2026-02-06T14:16:47.5598740Z 7799c133bb28: Download complete
+2026-02-06T14:16:48.3598598Z 279a6137838f: Verifying Checksum
+2026-02-06T14:16:48.3605348Z 279a6137838f: Download complete
+2026-02-06T14:16:48.6355442Z 0c8d55a45c0d: Pull complete
+2026-02-06T14:16:51.5590504Z d7071d8cd1af: Pull complete
+2026-02-06T14:16:51.7765334Z e3d994429678: Pull complete
+2026-02-06T14:16:51.8285325Z 512b7ea3ac5d: Pull complete
+2026-02-06T14:16:52.1991712Z c4fa1de5526b: Pull complete
+2026-02-06T14:16:52.3077783Z 67efc7fd0cb7: Pull complete
+2026-02-06T14:16:52.3197593Z 0b231e82c9b6: Pull complete
+2026-02-06T14:16:52.3429134Z b61b9ed964eb: Pull complete
+2026-02-06T14:16:56.5576235Z 279a6137838f: Pull complete
+2026-02-06T14:16:56.6075421Z 7114148b339a: Pull complete
+2026-02-06T14:16:56.6217886Z 71657407fe24: Pull complete
+2026-02-06T14:16:56.6384131Z de1986ae4268: Pull complete
+2026-02-06T14:16:56.6541695Z d730385e2e5c: Pull complete
+2026-02-06T14:16:56.6671375Z 7799c133bb28: Pull complete
+2026-02-06T14:16:56.6724056Z Digest: sha256:468e1f126ca5af849799cda06ac9b03d8090aae9fa5163408b3e8da44fad0702
+2026-02-06T14:16:56.6738094Z Status: Downloaded newer image for postgres:16
+2026-02-06T14:16:56.6750248Z docker.io/library/postgres:16
+2026-02-06T14:16:56.6816740Z ##[command]/usr/bin/docker create --name b6bd10df343d446891302e39e117eff6_postgres16_81d2fb --label 3d19da --network github_network_5ad20a5cfc7e4fb0a62c33d897cbca67 --network-alias postgres -p 5432:5432 --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 5 -e "POSTGRES_PASSWORD=postgres" -e "POSTGRES_DB=cli2ansible" -e GITHUB_ACTIONS=true -e CI=true postgres:16
+2026-02-06T14:16:56.7162089Z a21809a2f744bababbdd707d0cc22d3320bfe81f64a405f49d5ee59056e174cb
+2026-02-06T14:16:56.7190835Z ##[command]/usr/bin/docker start a21809a2f744bababbdd707d0cc22d3320bfe81f64a405f49d5ee59056e174cb
+2026-02-06T14:16:56.9579902Z a21809a2f744bababbdd707d0cc22d3320bfe81f64a405f49d5ee59056e174cb
+2026-02-06T14:16:56.9619120Z ##[command]/usr/bin/docker ps --all --filter id=a21809a2f744bababbdd707d0cc22d3320bfe81f64a405f49d5ee59056e174cb --filter status=running --no-trunc --format "{{.ID}} {{.Status}}"
+2026-02-06T14:16:56.9815248Z a21809a2f744bababbdd707d0cc22d3320bfe81f64a405f49d5ee59056e174cb Up Less than a second (health: starting)
+2026-02-06T14:16:56.9852496Z ##[command]/usr/bin/docker port a21809a2f744bababbdd707d0cc22d3320bfe81f64a405f49d5ee59056e174cb
+2026-02-06T14:16:57.0059729Z 5432/tcp -> 0.0.0.0:5432
+2026-02-06T14:16:57.0061051Z 5432/tcp -> [::]:5432
+2026-02-06T14:16:57.0131191Z ##[endgroup]
+2026-02-06T14:16:57.0146012Z ##[group]Waiting for all services to be ready
+2026-02-06T14:16:57.0171187Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" a21809a2f744bababbdd707d0cc22d3320bfe81f64a405f49d5ee59056e174cb
+2026-02-06T14:16:57.0406798Z starting
+2026-02-06T14:16:57.0436208Z postgres service is starting, waiting 2 seconds before checking again.
+2026-02-06T14:16:59.0442655Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" a21809a2f744bababbdd707d0cc22d3320bfe81f64a405f49d5ee59056e174cb
+2026-02-06T14:16:59.0577679Z starting
+2026-02-06T14:16:59.0591289Z postgres service is starting, waiting 4 seconds before checking again.
+2026-02-06T14:17:03.1270411Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" a21809a2f744bababbdd707d0cc22d3320bfe81f64a405f49d5ee59056e174cb
+2026-02-06T14:17:03.1433474Z healthy
+2026-02-06T14:17:03.1452502Z postgres service is healthy.
+2026-02-06T14:17:03.1453558Z ##[endgroup]
+2026-02-06T14:17:03.1726218Z ##[group]Run actions/checkout@v4
+2026-02-06T14:17:03.1727248Z with:
+2026-02-06T14:17:03.1727453Z   repository: pbooth01/cli2ansible
+2026-02-06T14:17:03.1727871Z   token: ***
+2026-02-06T14:17:03.1728045Z   ssh-strict: true
+2026-02-06T14:17:03.1728231Z   ssh-user: git
+2026-02-06T14:17:03.1728424Z   persist-credentials: true
+2026-02-06T14:17:03.1728631Z   clean: true
+2026-02-06T14:17:03.1728817Z   sparse-checkout-cone-mode: true
+2026-02-06T14:17:03.1729037Z   fetch-depth: 1
+2026-02-06T14:17:03.1729215Z   fetch-tags: false
+2026-02-06T14:17:03.1729400Z   show-progress: true
+2026-02-06T14:17:03.1729585Z   lfs: false
+2026-02-06T14:17:03.1729752Z   submodules: false
+2026-02-06T14:17:03.1729976Z   set-safe-directory: true
+2026-02-06T14:17:03.1730361Z ##[endgroup]
+2026-02-06T14:17:03.2890636Z Syncing repository: pbooth01/cli2ansible
+2026-02-06T14:17:03.2892468Z ##[group]Getting Git version info
+2026-02-06T14:17:03.2893084Z Working directory is '/home/runner/work/cli2ansible/cli2ansible'
+2026-02-06T14:17:03.2894047Z [command]/usr/bin/git version
+2026-02-06T14:17:03.3009825Z git version 2.52.0
+2026-02-06T14:17:03.3039394Z ##[endgroup]
+2026-02-06T14:17:03.3057426Z Temporarily overriding HOME='/home/runner/work/_temp/4632f4b7-e739-47bd-9fad-ad45f83f7e84' before making global git config changes
+2026-02-06T14:17:03.3059200Z Adding repository directory to the temporary git global config as a safe directory
+2026-02-06T14:17:03.3064733Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/cli2ansible/cli2ansible
+2026-02-06T14:17:03.3110199Z Deleting the contents of '/home/runner/work/cli2ansible/cli2ansible'
+2026-02-06T14:17:03.3114747Z ##[group]Initializing the repository
+2026-02-06T14:17:03.3120302Z [command]/usr/bin/git init /home/runner/work/cli2ansible/cli2ansible
+2026-02-06T14:17:03.3242189Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-02-06T14:17:03.3245082Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-02-06T14:17:03.3249424Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-02-06T14:17:03.3250087Z hint: call:
+2026-02-06T14:17:03.3250384Z hint:
+2026-02-06T14:17:03.3250851Z hint: 	git config --global init.defaultBranch <name>
+2026-02-06T14:17:03.3251410Z hint:
+2026-02-06T14:17:03.3251925Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-02-06T14:17:03.3252795Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-02-06T14:17:03.3253467Z hint:
+2026-02-06T14:17:03.3253826Z hint: 	git branch -m <name>
+2026-02-06T14:17:03.3254194Z hint:
+2026-02-06T14:17:03.3254739Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-02-06T14:17:03.3256050Z Initialized empty Git repository in /home/runner/work/cli2ansible/cli2ansible/.git/
+2026-02-06T14:17:03.3264736Z [command]/usr/bin/git remote add origin https://github.com/pbooth01/cli2ansible
+2026-02-06T14:17:03.3303813Z ##[endgroup]
+2026-02-06T14:17:03.3304734Z ##[group]Disabling automatic garbage collection
+2026-02-06T14:17:03.3308210Z [command]/usr/bin/git config --local gc.auto 0
+2026-02-06T14:17:03.3341614Z ##[endgroup]
+2026-02-06T14:17:03.3342701Z ##[group]Setting up auth
+2026-02-06T14:17:03.3349789Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-02-06T14:17:03.3383404Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-02-06T14:17:03.3757222Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-02-06T14:17:03.3792725Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-02-06T14:17:03.4032111Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-02-06T14:17:03.4075333Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-02-06T14:17:03.4316850Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-02-06T14:17:03.4355010Z ##[endgroup]
+2026-02-06T14:17:03.4356055Z ##[group]Fetching the repository
+2026-02-06T14:17:03.4366158Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +79bb70c150d04aed2ed3adaf869e13f9932cf644:refs/remotes/pull/36/merge
+2026-02-06T14:17:03.7911066Z From https://github.com/pbooth01/cli2ansible
+2026-02-06T14:17:03.7931769Z  * [new ref]         79bb70c150d04aed2ed3adaf869e13f9932cf644 -> pull/36/merge
+2026-02-06T14:17:03.7973834Z ##[endgroup]
+2026-02-06T14:17:03.7979367Z ##[group]Determining the checkout info
+2026-02-06T14:17:03.7988097Z ##[endgroup]
+2026-02-06T14:17:03.8001187Z [command]/usr/bin/git sparse-checkout disable
+2026-02-06T14:17:03.8075023Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-02-06T14:17:03.8137031Z ##[group]Checking out the ref
+2026-02-06T14:17:03.8141219Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/36/merge
+2026-02-06T14:17:03.8378811Z Note: switching to 'refs/remotes/pull/36/merge'.
+2026-02-06T14:17:03.8382492Z 
+2026-02-06T14:17:03.8382936Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-02-06T14:17:03.8394431Z changes and commit them, and you can discard any commits you make in this
+2026-02-06T14:17:03.8395285Z state without impacting any branches by switching back to a branch.
+2026-02-06T14:17:03.8396100Z 
+2026-02-06T14:17:03.8396677Z If you want to create a new branch to retain commits you create, you may
+2026-02-06T14:17:03.8397505Z do so (now or later) by using -c with the switch command. Example:
+2026-02-06T14:17:03.8397994Z 
+2026-02-06T14:17:03.8398165Z   git switch -c <new-branch-name>
+2026-02-06T14:17:03.8398491Z 
+2026-02-06T14:17:03.8398667Z Or undo this operation with:
+2026-02-06T14:17:03.8398942Z 
+2026-02-06T14:17:03.8399078Z   git switch -
+2026-02-06T14:17:03.8399317Z 
+2026-02-06T14:17:03.8399680Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-02-06T14:17:03.8400224Z 
+2026-02-06T14:17:03.8400843Z HEAD is now at 79bb70c Merge 5ceb5c81545a25a482255e91707b72fcf75d6747 into d78fe96741e665a9a00ed95948c557430fceed89
+2026-02-06T14:17:03.8429409Z ##[endgroup]
+2026-02-06T14:17:03.8504384Z [command]/usr/bin/git log -1 --format=%H
+2026-02-06T14:17:03.8548785Z 79bb70c150d04aed2ed3adaf869e13f9932cf644
+2026-02-06T14:17:03.8778079Z ##[group]Run actions/setup-python@v5
+2026-02-06T14:17:03.8778371Z with:
+2026-02-06T14:17:03.8778550Z   python-version: 3.11
+2026-02-06T14:17:03.8778756Z   check-latest: false
+2026-02-06T14:17:03.8779093Z   token: ***
+2026-02-06T14:17:03.8779280Z   update-environment: true
+2026-02-06T14:17:03.8779501Z   allow-prereleases: false
+2026-02-06T14:17:03.8779697Z   freethreaded: false
+2026-02-06T14:17:03.8779884Z ##[endgroup]
+2026-02-06T14:17:04.0557514Z ##[group]Installed versions
+2026-02-06T14:17:04.0744384Z Successfully set up CPython (3.11.14)
+2026-02-06T14:17:04.0750272Z ##[endgroup]
+2026-02-06T14:17:04.0912140Z ##[group]Run snok/install-poetry@v1
+2026-02-06T14:17:04.0912427Z with:
+2026-02-06T14:17:04.0912596Z   version: 1.7.1
+2026-02-06T14:17:04.0912784Z   virtualenvs-create: true
+2026-02-06T14:17:04.0913008Z   virtualenvs-in-project: true
+2026-02-06T14:17:04.0913254Z   virtualenvs-path: {cache-dir}/virtualenvs
+2026-02-06T14:17:04.0913521Z   installer-parallel: true
+2026-02-06T14:17:04.0913720Z env:
+2026-02-06T14:17:04.0939108Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:04.0939800Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib/pkgconfig
+2026-02-06T14:17:04.0940456Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:04.0941024Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:04.0941636Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:04.0942291Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib
+2026-02-06T14:17:04.0942827Z ##[endgroup]
+2026-02-06T14:17:04.1032315Z ##[group]Run $GITHUB_ACTION_PATH/main.sh
+2026-02-06T14:17:04.1032641Z [36;1m$GITHUB_ACTION_PATH/main.sh[0m
+2026-02-06T14:17:04.1079833Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-02-06T14:17:04.1080156Z env:
+2026-02-06T14:17:04.1080399Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:04.1080808Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib/pkgconfig
+2026-02-06T14:17:04.1081207Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:04.1081556Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:04.1081901Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:04.1082252Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib
+2026-02-06T14:17:04.1082550Z   VERSION: 1.7.1
+2026-02-06T14:17:04.1082729Z   VIRTUALENVS_CREATE: true
+2026-02-06T14:17:04.1082941Z   VIRTUALENVS_IN_PROJECT: true
+2026-02-06T14:17:04.1083183Z   VIRTUALENVS_PATH: {cache-dir}/virtualenvs
+2026-02-06T14:17:04.1083430Z   INSTALLER_PARALLEL: true
+2026-02-06T14:17:04.1083634Z   INSTALLATION_ARGUMENTS: 
+2026-02-06T14:17:04.1083824Z   POETRY_PLUGINS: 
+2026-02-06T14:17:04.1084003Z ##[endgroup]
+2026-02-06T14:17:04.3161903Z 
+2026-02-06T14:17:04.3163240Z [33mSetting Poetry installation path as /home/runner/.local[0m
+2026-02-06T14:17:04.3165066Z 
+2026-02-06T14:17:04.3165583Z [33mInstalling Poetry 👷[0m
+2026-02-06T14:17:04.3167638Z 
+2026-02-06T14:17:16.9463025Z Retrieving Poetry metadata
+2026-02-06T14:17:16.9465202Z 
+2026-02-06T14:17:16.9465358Z # Welcome to Poetry!
+2026-02-06T14:17:16.9465561Z 
+2026-02-06T14:17:16.9465797Z This will download and install the latest version of Poetry,
+2026-02-06T14:17:16.9466643Z a dependency and package manager for Python.
+2026-02-06T14:17:16.9466968Z 
+2026-02-06T14:17:16.9467259Z It will add the `poetry` command to Poetry's bin directory, located at:
+2026-02-06T14:17:16.9467693Z 
+2026-02-06T14:17:16.9467814Z /home/runner/.local/bin
+2026-02-06T14:17:16.9468059Z 
+2026-02-06T14:17:16.9468406Z You can uninstall at any time by executing this script with the --uninstall option,
+2026-02-06T14:17:16.9469015Z and these changes will be reverted.
+2026-02-06T14:17:16.9469274Z 
+2026-02-06T14:17:16.9469396Z Installing Poetry (1.7.1)
+2026-02-06T14:17:16.9469757Z Installing Poetry (1.7.1): Creating environment
+2026-02-06T14:17:16.9470215Z Installing Poetry (1.7.1): Installing Poetry
+2026-02-06T14:17:16.9470639Z Installing Poetry (1.7.1): Creating script
+2026-02-06T14:17:16.9471043Z Installing Poetry (1.7.1): Done
+2026-02-06T14:17:16.9471275Z 
+2026-02-06T14:17:16.9471412Z Poetry (1.7.1) is installed now. Great!
+2026-02-06T14:17:16.9471664Z 
+2026-02-06T14:17:16.9471844Z You can test that everything is set up by executing:
+2026-02-06T14:17:16.9472168Z 
+2026-02-06T14:17:16.9472279Z `poetry --version`
+2026-02-06T14:17:16.9472446Z 
+2026-02-06T14:17:18.7411460Z 
+2026-02-06T14:17:18.7415194Z [33mInstallation completed. Configuring settings 🛠[0m
+2026-02-06T14:17:18.7415711Z 
+2026-02-06T14:17:18.7422666Z [33mDone ✅[0m
+2026-02-06T14:17:18.7425271Z 
+2026-02-06T14:17:18.7427460Z [33mIf you are creating a venv in your project, you can activate it by running 'source .venv/bin/activate'. If you're running this in an OS matrix, you can use 'source $VENV' instead, as an OS agnostic option[0m
+2026-02-06T14:17:18.8433727Z ##[group]Run actions/cache@v3
+2026-02-06T14:17:18.8433987Z with:
+2026-02-06T14:17:18.8434153Z   path: .venv
+2026-02-06T14:17:18.8434522Z   key: venv-Linux--8c1d793a8a3d059d0d702b801c6e9e21fa15e75129dc9ab292048207a781817d
+2026-02-06T14:17:18.8434940Z   enableCrossOsArchive: false
+2026-02-06T14:17:18.8435170Z   fail-on-cache-miss: false
+2026-02-06T14:17:18.8435379Z   lookup-only: false
+2026-02-06T14:17:18.8435566Z env:
+2026-02-06T14:17:18.8435796Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:18.8436210Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib/pkgconfig
+2026-02-06T14:17:18.8437211Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:18.8437573Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:18.8437918Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:18.8438278Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib
+2026-02-06T14:17:18.8438628Z   VENV: .venv/bin/activate
+2026-02-06T14:17:18.8438822Z ##[endgroup]
+2026-02-06T14:17:19.1339195Z Cache hit for: venv-Linux--8c1d793a8a3d059d0d702b801c6e9e21fa15e75129dc9ab292048207a781817d
+2026-02-06T14:17:19.9398481Z Received 65513751 of 65513751 (100.0%), 92.6 MBs/sec
+2026-02-06T14:17:19.9399543Z Cache Size: ~62 MB (65513751 B)
+2026-02-06T14:17:19.9436893Z [command]/usr/bin/tar -xf /home/runner/work/_temp/1542c7a9-8a48-46c5-b5d8-c276412e747e/cache.tzst -P -C /home/runner/work/cli2ansible/cli2ansible --use-compress-program unzstd
+2026-02-06T14:17:20.5995688Z Cache restored successfully
+2026-02-06T14:17:20.6202950Z Cache restored from key: venv-Linux--8c1d793a8a3d059d0d702b801c6e9e21fa15e75129dc9ab292048207a781817d
+2026-02-06T14:17:20.6324120Z ##[group]Run poetry install --no-interaction --no-ansi
+2026-02-06T14:17:20.6324543Z [36;1mpoetry install --no-interaction --no-ansi[0m
+2026-02-06T14:17:20.6357462Z shell: /usr/bin/bash -e {0}
+2026-02-06T14:17:20.6357699Z env:
+2026-02-06T14:17:20.6357946Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:20.6358402Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib/pkgconfig
+2026-02-06T14:17:20.6358998Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:20.6359360Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:20.6359715Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:20.6360076Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib
+2026-02-06T14:17:20.6360383Z   VENV: .venv/bin/activate
+2026-02-06T14:17:20.6360584Z ##[endgroup]
+2026-02-06T14:17:21.2725327Z Installing dependencies from lock file
+2026-02-06T14:17:21.3005065Z The lock file might not be compatible with the current version of Poetry.
+2026-02-06T14:17:21.3008593Z Upgrade Poetry to ensure the lock file is read properly or, alternatively, regenerate the lock file with the `poetry lock` command.
+2026-02-06T14:17:21.6203288Z 
+2026-02-06T14:17:21.6204526Z No dependencies to install or update
+2026-02-06T14:17:21.6236020Z 
+2026-02-06T14:17:21.6236831Z Installing the current project: cli2ansible (0.1.0)
+2026-02-06T14:17:21.6873025Z ##[group]Run poetry run ruff check .
+2026-02-06T14:17:21.6873562Z [36;1mpoetry run ruff check .[0m
+2026-02-06T14:17:21.6873989Z [36;1mpoetry run mypy src[0m
+2026-02-06T14:17:21.6920237Z shell: /usr/bin/bash -e {0}
+2026-02-06T14:17:21.6920637Z env:
+2026-02-06T14:17:21.6921050Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:21.6921801Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib/pkgconfig
+2026-02-06T14:17:21.6922542Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:21.6923199Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:21.6923850Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+2026-02-06T14:17:21.6924533Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib
+2026-02-06T14:17:21.6925113Z   VENV: .venv/bin/activate
+2026-02-06T14:17:21.6925494Z ##[endgroup]
+2026-02-06T14:17:22.1067726Z .augment/skills/dev-setup/scripts/setup.py:54:13: SIM115 Use context handler for opening files
+2026-02-06T14:17:22.1070668Z Found 1 error.
+2026-02-06T14:17:22.1092117Z ##[error]Process completed with exit code 1.
+2026-02-06T14:17:22.1185414Z Post job cleanup.
+2026-02-06T14:17:22.2178812Z [command]/usr/bin/git version
+2026-02-06T14:17:22.2220216Z git version 2.52.0
+2026-02-06T14:17:22.2268572Z Temporarily overriding HOME='/home/runner/work/_temp/eaf5ee81-4de2-4b89-bbaa-493bea7c4686' before making global git config changes
+2026-02-06T14:17:22.2270052Z Adding repository directory to the temporary git global config as a safe directory
+2026-02-06T14:17:22.2284477Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/cli2ansible/cli2ansible
+2026-02-06T14:17:22.2321916Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-02-06T14:17:22.2359275Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-02-06T14:17:22.2617029Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-02-06T14:17:22.2643455Z http.https://github.com/.extraheader
+2026-02-06T14:17:22.2659530Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-02-06T14:17:22.2693152Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-02-06T14:17:22.2939440Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-02-06T14:17:22.2975536Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-02-06T14:17:22.3312091Z Print service container logs: b6bd10df343d446891302e39e117eff6_postgres16_81d2fb
+2026-02-06T14:17:22.3316596Z ##[command]/usr/bin/docker logs --details a21809a2f744bababbdd707d0cc22d3320bfe81f64a405f49d5ee59056e174cb
+2026-02-06T14:17:22.3519418Z  initdb: warning: enabling "trust" authentication for local connections
+2026-02-06T14:17:22.3528528Z  initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+2026-02-06T14:17:22.3530271Z  2026-02-06 14:16:58.012 UTC [1] LOG:  starting PostgreSQL 16.11 (Debian 16.11-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-02-06T14:17:22.3531600Z  2026-02-06 14:16:58.012 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-02-06T14:17:22.3532618Z  2026-02-06 14:16:58.012 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-02-06T14:17:22.3533918Z  2026-02-06 14:16:58.013 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-02-06T14:17:22.3535340Z  2026-02-06 14:16:58.016 UTC [63] LOG:  database system was shut down at 2026-02-06 14:16:57 UTC
+2026-02-06T14:17:22.3536487Z  2026-02-06 14:16:58.021 UTC [1] LOG:  database system is ready to accept connections
+2026-02-06T14:17:22.3543140Z  The files belonging to this database system will be owned by user "postgres".
+2026-02-06T14:17:22.3553911Z  This user must also own the server process.
+2026-02-06T14:17:22.3554581Z  
+2026-02-06T14:17:22.3555177Z  The database cluster will be initialized with locale "en_US.utf8".
+2026-02-06T14:17:22.3556047Z  The default database encoding has accordingly been set to "UTF8".
+2026-02-06T14:17:22.3557157Z  The default text search configuration will be set to "english".
+2026-02-06T14:17:22.3557773Z  
+2026-02-06T14:17:22.3574637Z  Data page checksums are disabled.
+2026-02-06T14:17:22.3582182Z  
+2026-02-06T14:17:22.3582644Z  fixing permissions on existing directory /var/lib/postgresql/data ... ok
+2026-02-06T14:17:22.3583320Z  creating subdirectories ... ok
+2026-02-06T14:17:22.3583848Z  selecting dynamic shared memory implementation ... posix
+2026-02-06T14:17:22.3584433Z  selecting default max_connections ... 100
+2026-02-06T14:17:22.3584935Z  selecting default shared_buffers ... 128MB
+2026-02-06T14:17:22.3585406Z  selecting default time zone ... Etc/UTC
+2026-02-06T14:17:22.3585875Z  creating configuration files ... ok
+2026-02-06T14:17:22.3589559Z  running bootstrap script ... ok
+2026-02-06T14:17:22.3590106Z  performing post-bootstrap initialization ... ok
+2026-02-06T14:17:22.3590605Z  syncing data to disk ... ok
+2026-02-06T14:17:22.3590967Z  
+2026-02-06T14:17:22.3591212Z  
+2026-02-06T14:17:22.3591572Z  Success. You can now start the database server using:
+2026-02-06T14:17:22.3592068Z  
+2026-02-06T14:17:22.3592441Z      pg_ctl -D /var/lib/postgresql/data -l logfile start
+2026-02-06T14:17:22.3592928Z  
+2026-02-06T14:17:22.3594008Z  waiting for server to start....2026-02-06 14:16:57.698 UTC [47] LOG:  starting PostgreSQL 16.11 (Debian 16.11-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-02-06T14:17:22.3595690Z  2026-02-06 14:16:57.698 UTC [47] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-02-06T14:17:22.3596864Z  2026-02-06 14:16:57.702 UTC [50] LOG:  database system was shut down at 2026-02-06 14:16:57 UTC
+2026-02-06T14:17:22.3597745Z  2026-02-06 14:16:57.705 UTC [47] LOG:  database system is ready to accept connections
+2026-02-06T14:17:22.3598369Z   done
+2026-02-06T14:17:22.3598652Z  server started
+2026-02-06T14:17:22.3598953Z  CREATE DATABASE
+2026-02-06T14:17:22.3599251Z  
+2026-02-06T14:17:22.3599500Z  
+2026-02-06T14:17:22.3600008Z  /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+2026-02-06T14:17:22.3600658Z  
+2026-02-06T14:17:22.3601226Z  waiting for server to shut down...2026-02-06 14:16:57.892 UTC [47] LOG:  received fast shutdown request
+2026-02-06T14:17:22.3602451Z  .2026-02-06 14:16:57.894 UTC [47] LOG:  aborting any active transactions
+2026-02-06T14:17:22.3603456Z  2026-02-06 14:16:57.897 UTC [47] LOG:  background worker "logical replication launcher" (PID 53) exited with exit code 1
+2026-02-06T14:17:22.3604363Z  2026-02-06 14:16:57.898 UTC [48] LOG:  shutting down
+2026-02-06T14:17:22.3605315Z  2026-02-06 14:16:57.899 UTC [48] LOG:  checkpoint starting: shutdown immediate
+2026-02-06T14:17:22.3607453Z  2026-02-06 14:16:57.917 UTC [48] LOG:  checkpoint complete: wrote 926 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.015 s, sync=0.003 s, total=0.019 s; sync files=301, longest=0.001 s, average=0.001 s; distance=4273 kB, estimate=4273 kB; lsn=0/191F0E0, redo lsn=0/191F0E0
+2026-02-06T14:17:22.3609319Z  2026-02-06 14:16:57.924 UTC [47] LOG:  database system is shut down
+2026-02-06T14:17:22.3609863Z   done
+2026-02-06T14:17:22.3610132Z  server stopped
+2026-02-06T14:17:22.3611341Z  
+2026-02-06T14:17:22.3611928Z  PostgreSQL init process complete; ready for start up.
+2026-02-06T14:17:22.3612449Z  
+2026-02-06T14:17:22.3620833Z Stop and remove container: b6bd10df343d446891302e39e117eff6_postgres16_81d2fb
+2026-02-06T14:17:22.3627762Z ##[command]/usr/bin/docker rm --force a21809a2f744bababbdd707d0cc22d3320bfe81f64a405f49d5ee59056e174cb
+2026-02-06T14:17:23.7582918Z a21809a2f744bababbdd707d0cc22d3320bfe81f64a405f49d5ee59056e174cb
+2026-02-06T14:17:23.7611210Z Remove container network: github_network_5ad20a5cfc7e4fb0a62c33d897cbca67
+2026-02-06T14:17:23.7615377Z ##[command]/usr/bin/docker network rm github_network_5ad20a5cfc7e4fb0a62c33d897cbca67
+2026-02-06T14:17:23.8533920Z github_network_5ad20a5cfc7e4fb0a62c33d897cbca67
+2026-02-06T14:17:23.8595305Z Cleaning up orphan processes

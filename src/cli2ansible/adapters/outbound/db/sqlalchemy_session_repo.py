@@ -3,10 +3,11 @@
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import delete, select
+
 from cli2ansible.domain.entities import Command, Event, SessionStatus
 from cli2ansible.domain.entities import Session as DomainSession
 from cli2ansible.domain.ports.repositories import SessionRepositoryPort
-from sqlalchemy import delete, select
 
 from .sqlalchemy_orms import CastFileORM, CommandORM, EventORM, SessionORM
 
@@ -26,7 +27,7 @@ class SQLAlchemySessionRepo(SessionRepositoryPort):
                 id=str(session.id),
                 name=session.name,
                 status=session.status.value,
-                session_metadata=session.metadata
+                session_metadata=session.metadata,
             )
             db.add(orm_session)
             db.commit()
@@ -67,9 +68,13 @@ class SQLAlchemySessionRepo(SessionRepositoryPort):
         """Delete a session and all related data."""
         with self.SessionLocal() as db:
             # Delete related cast files
-            db.execute(delete(CastFileORM).where(CastFileORM.session_id == str(session_id)))
+            db.execute(
+                delete(CastFileORM).where(CastFileORM.session_id == str(session_id))
+            )
             # Delete related commands
-            db.execute(delete(CommandORM).where(CommandORM.session_id == str(session_id)))
+            db.execute(
+                delete(CommandORM).where(CommandORM.session_id == str(session_id))
+            )
             # Delete related events
             db.execute(delete(EventORM).where(EventORM.session_id == str(session_id)))
             # Delete the session
@@ -84,7 +89,7 @@ class SQLAlchemySessionRepo(SessionRepositoryPort):
             status=SessionStatus(orm_session.status),
             created_at=orm_session.created_at,
             updated_at=orm_session.updated_at,
-            metadata=orm_session.session_metadata
+            metadata=orm_session.session_metadata,
         )
 
     # Event operations - not implemented in this repository

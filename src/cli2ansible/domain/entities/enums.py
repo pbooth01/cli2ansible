@@ -1,9 +1,9 @@
 """Enums for domain entities."""
 
-from enum import Enum
+from enum import StrEnum
 
 
-class SessionStatus(str, Enum):
+class SessionStatus(StrEnum):
     """Session lifecycle status."""
 
     CREATED = "created"
@@ -14,7 +14,7 @@ class SessionStatus(str, Enum):
     FAILED = "failed"
 
 
-class TaskConfidence(str, Enum):
+class TaskConfidence(StrEnum):
     """Confidence level for translated tasks."""
 
     HIGH = "high"  # Direct module mapping

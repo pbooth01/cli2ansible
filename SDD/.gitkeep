@@ -1,0 +1,14 @@
+# SDD Directory
+
+This directory contains Software Design Documents (SDDs) created by the planning agent
+as part of the spec-driven development workflow.
+
+## Naming Convention
+
+- With ticket ID: `{TICKET-ID}-{Feature-Name}.md`
+- Without ticket ID: `{Feature-Name}-{YYYY-MM-DD}.md`
+
+## Template
+
+See `.augment/agents/planning-agent.md` for the SDD template structure.
+

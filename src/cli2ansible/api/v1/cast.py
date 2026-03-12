@@ -5,9 +5,10 @@
 from typing import Any
 from uuid import UUID
 
+from fastapi import APIRouter, UploadFile
+
 from cli2ansible.api.schemas import CastUploadResponse
 from cli2ansible.application.errors import BadRequestError
-from fastapi import APIRouter, UploadFile
 
 
 def create_router(ingest_service: Any, compile_service: Any) -> APIRouter:
@@ -52,9 +53,25 @@ def create_router(ingest_service: Any, compile_service: Any) -> APIRouter:
         # Use service to upload cast file and auto-compile
         # Service handles: upload → parse → store → auto-compile (with graceful failure)
         # The service will validate file size and raise TooLarge if needed
-        events = ingest_service.upload_cast_file_and_auto_compile(
+        event_dtos = ingest_service.upload_cast_file_and_auto_compile(
             session_id, file.filename, file_data, compile_service
         )
+
+        # Convert DTOs to API response schema
+        from cli2ansible.api.schemas import EventResponse
+
+        events = [
+            EventResponse(
+                id=dto.id,
+                session_id=dto.session_id,
+                timestamp=dto.timestamp,
+                event_type=dto.event_type,
+                data=dto.data,
+                sequence=dto.sequence,
+                version=dto.version,
+            )
+            for dto in event_dtos
+        ]
 
         return CastUploadResponse(
             status="parsed",

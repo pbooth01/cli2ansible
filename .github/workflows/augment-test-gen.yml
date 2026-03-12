@@ -1,0 +1,29 @@
+name: Augment Test Gen
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  check-test-coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check test coverage and generate tests
+        uses: augmentcode/augment-agent@main
+        with:
+          augment_session_auth: ${{ secrets.AUGMENT_SESSION_AUTH }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          model: unit-testing
+          instruction: |
+            Check the changes in this PR and assess whether sufficient test coverage is present.
+            Only if sufficient coverage is not present, write tests for the missing coverage and create a PR targeted at this PR.
+            The PR should mention the original PR in its description: "Depends on PR: #${{ github.event.pull_request.number }}".

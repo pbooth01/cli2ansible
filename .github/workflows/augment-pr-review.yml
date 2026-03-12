@@ -1,0 +1,239 @@
+name: Augment PR Review with Test Coverage
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  test-python:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cli2ansible
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    outputs:
+      python_coverage_exists: ${{ steps.check-coverage.outputs.exists }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.7.1
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-3.11-${{ hashFiles('**/pyproject.toml') }}
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-ansi
+
+      - name: Run Python tests with coverage
+        env:
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/cli2ansible
+        run: |
+          poetry run pytest --cov=src --cov-report=json --cov-report=term-missing --cov-report=xml
+        continue-on-error: true
+
+      - name: Check Python coverage exists
+        id: check-coverage
+        run: |
+          if [ -f coverage.json ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload Python coverage artifact
+        if: steps.check-coverage.outputs.exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-coverage
+          path: |
+            coverage.json
+            coverage.xml
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend_coverage_exists: ${{ steps.check-coverage.outputs.exists }}
+      frontend_tests_exist: ${{ steps.check-tests.outputs.exists }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Check if tests exist
+        id: check-tests
+        working-directory: frontend
+        run: |
+          # Check if test script exists in package.json and test files exist
+          if grep -q '"test"' package.json && \
+             (find . -name "*.test.*" -o -name "*.spec.*" -o -type d -name "__tests__" 2>/dev/null | grep -q .); then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "No test configuration found in frontend"
+          fi
+
+      - name: Run frontend tests with coverage
+        if: steps.check-tests.outputs.exists == 'true'
+        working-directory: frontend
+        run: npm test -- --coverage --coverageReporters=json-summary --coverageReporters=text
+        continue-on-error: true
+
+      - name: Check frontend coverage exists
+        id: check-coverage
+        working-directory: frontend
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run frontend lint
+        working-directory: frontend
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Upload frontend coverage artifact
+        if: steps.check-coverage.outputs.exists == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/coverage-summary.json
+
+  review:
+    runs-on: ubuntu-latest
+    needs: [test-python, test-frontend]
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Python coverage
+        if: needs.test-python.outputs.python_coverage_exists == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: python-coverage
+          path: coverage/python
+
+      - name: Download frontend coverage
+        if: needs.test-frontend.outputs.frontend_coverage_exists == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-coverage
+          path: coverage/frontend
+
+      - name: Generate PR Review with Test Coverage Analysis
+        uses: augmentcode/review-pr@v0
+        with:
+          augment_session_auth: ${{ secrets.AUGMENT_SESSION_AUTH }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pull_number: ${{ github.event.pull_request.number }}
+          repo_name: ${{ github.repository }}
+          custom_guidelines: |
+            ## Code Review Guidelines
+            - The goal is to focus on objective issues like bugs, and less on:
+              a) subjective issues like style/readability
+              b) issues like compiler errors that already have existing tools
+              c) config files where the agent doesn't have enough context about why those configs are being changed
+            - It is okay to post zero comments if you are not confident about any issues
+            - Prefer to post zero comments over low-confidence comments
+            - Leave individual inline comments on specific code issues, not just a summary
+            - Each issue should have its own comment anchored to the relevant line(s)
+
+            ## Code Quality Guidelines
+            - Check for proper error handling in functions
+            - Ensure all API calls are properly authenticated
+            - Verify that new components follow our design patterns
+            - Focus on security vulnerabilities and bugs
+
+            ## Test Coverage Analysis
+
+            ### Test Design Principles
+            - Focus on **behavior over implementation** - test public interfaces and observable behavior
+            - Ensure **determinism & speed** - no network calls, real databases, or external services in unit tests
+            - Use **Arrange-Act-Assert (AAA)** pattern for clarity
+            - Prefer **meaningful coverage**, not just high coverage numbers
+            - Keep tests **maintainable** - avoid brittle assertions and over-mocking
+
+            ### Python Tests (pytest)
+            - Tests are in `tests/` directory with subdirectories: `unit/`, `integration/`, `api/`
+            - Uses pytest with pytest-cov for coverage
+            - Coverage report is in `coverage/python/coverage.json` if it exists
+            - Check if new Python code has corresponding tests in `tests/`
+
+            ### Frontend Tests (Jest/Next.js)
+            - Tests would be in `frontend/` directory using Jest
+            - Coverage report is in `coverage/frontend/coverage-summary.json` if it exists
+            - Check if new TypeScript/React code has corresponding tests
+
+            ### Specific Review Tasks
+            1. **Analyze test coverage** - Check coverage reports if they exist
+            2. **Identify untested code paths** - Flag any new functions, classes, or modules without tests
+            3. **Check edge cases** - Verify tests cover:
+               - Null/undefined inputs
+               - Empty collections
+               - Boundary conditions
+               - Error paths
+            4. **Review test quality**:
+               - Are tests deterministic and fast?
+               - Do they use proper mocking for external dependencies?
+               - Are test names descriptive?
+               - Do they follow AAA pattern?
+
+            ### Coverage Thresholds
+            - New features should aim for >80% coverage
+            - Critical paths (authentication, file operations, API endpoints) must have high coverage
+            - Flag any new code with <50% coverage as high priority
+            - Suggest specific test cases for untested code paths
+          rules: |
+            [
+              ".augment/rules/code-quality.md",
+              ".augment/rules/security.md",
+              ".augment/rules/testing.md"
+            ]

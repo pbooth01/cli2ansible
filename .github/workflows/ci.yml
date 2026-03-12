@@ -12,7 +12,7 @@ on:
       - main
 
 jobs:
-  build:
+  build-python:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -71,29 +71,43 @@ jobs:
           override_branch: ${{ github.ref_name }}
           override_commit: ${{ github.sha }}
 
-  # Augment AI Code Review
-  augment-review:
+  build-frontend:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    permissions:
-      contents: read
-      pull-requests: write
 
     steps:
-      - name: Generate PR Review
-        uses: augmentcode/review-pr@v0
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
         with:
-          augment_session_auth: ${{ secrets.AUGMENT_SESSION_AUTH }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          pull_number: ${{ github.event.pull_request.number }}
-          repo_name: ${{ github.repository }}
-          custom_guidelines: |
-            - Leave individual inline comments on specific code issues, not just a summary
-            - Each issue should have its own comment anchored to the relevant line(s)
-            - Provide actionable feedback with code suggestions where appropriate
-          rules: |
-            [
-              ".augment/rules/code-quality.md",
-              ".augment/rules/security.md",
-              ".augment/rules/testing.md"
-            ]
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Check if tests exist
+        id: check-tests
+        working-directory: frontend
+        run: |
+          if grep -q '"test"' package.json && \
+             (find . -name "*.test.*" -o -name "*.spec.*" -o -type d -name "__tests__" 2>/dev/null | grep -q .); then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run frontend tests
+        if: steps.check-tests.outputs.exists == 'true'
+        working-directory: frontend
+        run: npm test -- --coverage --coverageReporters=text
