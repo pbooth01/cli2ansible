@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+
 from cli2ansible.domain.entities import Role
 from cli2ansible.domain.ports import RoleGeneratorPort
 

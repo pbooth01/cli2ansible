@@ -3,9 +3,10 @@
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import delete, select
+
 from cli2ansible.domain.entities import Event
 from cli2ansible.domain.ports.repositories import EventRepositoryPort
-from sqlalchemy import delete, select
 
 from .sqlalchemy_orms import EventORM
 

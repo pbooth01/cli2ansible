@@ -3,10 +3,11 @@
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import delete, select
+
 from cli2ansible.domain.entities import Command, Event, SessionStatus
 from cli2ansible.domain.entities import Session as DomainSession
 from cli2ansible.domain.ports.repositories import SessionRepositoryPort
-from sqlalchemy import delete, select
 
 from .sqlalchemy_orms import CastFileORM, CommandORM, EventORM, SessionORM
 

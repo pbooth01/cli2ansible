@@ -2,11 +2,11 @@
 
 from logging.config import fileConfig
 
-from cli2ansible.adapters.outbound.db.sqlalchemy_orms import Base
-from cli2ansible.settings import settings
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context  # type: ignore[attr-defined]
+from cli2ansible.adapters.outbound.db.sqlalchemy_orms import Base
+from cli2ansible.settings import settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

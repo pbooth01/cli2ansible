@@ -12,6 +12,8 @@ Consolidates all /sessions endpoints including:
 from typing import Any
 from uuid import UUID
 
+from fastapi import APIRouter
+
 from cli2ansible.api.schemas import (
     ArtifactResponse,
     CleanSessionResponse,
@@ -28,7 +30,6 @@ from cli2ansible.application.ports import (
     CompilePlaybookUseCase,
     IngestSessionUseCase,
 )
-from fastapi import APIRouter
 
 
 def create_router(

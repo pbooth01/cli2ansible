@@ -5,6 +5,8 @@
 from typing import Any
 from uuid import UUID
 
+from fastapi import APIRouter
+
 from cli2ansible.api.schemas import (
     BatchEventUpdateRequest,
     BatchEventUpdateResponse,
@@ -15,7 +17,6 @@ from cli2ansible.api.schemas import (
     EventUpdateResult,
 )
 from cli2ansible.application.errors import ApplicationError
-from fastapi import APIRouter
 
 
 def create_router(ingest_service: Any) -> APIRouter:

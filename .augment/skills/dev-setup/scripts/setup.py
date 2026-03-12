@@ -49,10 +49,17 @@ def run_command(cmd, description, cwd=None, check=True):
 def run_background_command(cmd, description, cwd=None, log_file=None):
     """Run a shell command in the background."""
     print(f"→ {description}...")
+    file_handle = None
     try:
-        stdout_dest = (
-            open(log_file, "w") if log_file else subprocess.DEVNULL
-        )  # noqa: SIM115
+        # Open log file if specified, otherwise use DEVNULL
+        # Note: File must stay open for the lifetime of the background process
+        # It will be closed in the cleanup handler
+        if log_file:
+            file_handle = open(log_file, "w")  # noqa: SIM115
+            stdout_dest = file_handle
+        else:
+            stdout_dest = subprocess.DEVNULL
+
         process = subprocess.Popen(
             cmd if isinstance(cmd, list) else cmd,
             shell=isinstance(cmd, str),
@@ -60,10 +67,14 @@ def run_background_command(cmd, description, cwd=None, log_file=None):
             stderr=subprocess.STDOUT,
             cwd=cwd,
         )
-        background_processes.append((process, description, log_file))
+        # Store file handle for proper cleanup
+        background_processes.append((process, description, file_handle))
         return True, process
     except Exception as e:
         print(f"  ❌ Error: {str(e)}")
+        # Clean up file handle if process creation failed
+        if file_handle:
+            file_handle.close()
         return False, None
 
 
@@ -94,10 +105,7 @@ def install_dependencies(clean=False):
             shutil.rmtree(venv_path)
 
     success, _ = run_command(["poetry", "install"], "Installing dependencies")
-    if not success:
-        return False
-
-    return True
+    return success
 
 
 def start_docker_services():
@@ -282,13 +290,14 @@ def main():
                         print(f"\n⚠️  {desc} has stopped")
         except KeyboardInterrupt:
             print("\n\n🛑 Stopping services...")
-            for proc, desc, log_file in background_processes:
+            for proc, desc, file_handle in background_processes:
                 if proc.poll() is None:
                     proc.terminate()
                     print(f"  • Stopped {desc}")
-                if log_file:
+                # Close file handle if it exists
+                if file_handle and file_handle != subprocess.DEVNULL:
                     with contextlib.suppress(Exception):
-                        open(log_file).close()  # noqa: SIM115
+                        file_handle.close()
             print("  ✓ All services stopped")
     else:
         print("Next steps:")

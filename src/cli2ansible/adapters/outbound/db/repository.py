@@ -2,12 +2,13 @@
 
 from uuid import UUID
 
-from cli2ansible.domain.entities import CastFile, Command, Event
-from cli2ansible.domain.entities import Session as DomainSession
-from cli2ansible.domain.ports import SessionRepositoryPort
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+
+from cli2ansible.domain.entities import CastFile, Command, Event
+from cli2ansible.domain.entities import Session as DomainSession
+from cli2ansible.domain.ports import SessionRepositoryPort
 
 from .sqlalchemy_command_repo import SQLAlchemyCommandRepo
 from .sqlalchemy_event_repo import SQLAlchemyEventRepo
