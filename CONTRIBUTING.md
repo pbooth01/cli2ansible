@@ -6,7 +6,7 @@ Thank you for your interest in contributing! This document outlines the developm
 
 ```bash
 # Clone and setup
-git clone https://github.com/yourusername/cli2ansible.git
+git clone https://github.com/pbooth01/cli2ansible.git
 cd cli2ansible
 make dev-install
 
