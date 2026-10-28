@@ -46,28 +46,35 @@ make docker-up
 
 ### Usage
 
+All endpoints are served under the `/api/v1` prefix.
+
 1. **Create a session:**
 ```bash
-curl -X POST http://localhost:8000/sessions \
+curl -X POST http://localhost:8000/api/v1/sessions \
   -H "Content-Type: application/json" \
   -d '{"name": "nginx-setup", "metadata": {}}'
 ```
 
-2. **Upload terminal events:**
+2. **Upload terminal events** (or an asciinema `.cast` file):
 ```bash
-curl -X POST http://localhost:8000/sessions/{session_id}/events \
+curl -X POST http://localhost:8000/api/v1/sessions/{session_id}/events \
   -H "Content-Type: application/json" \
   -d '[{"timestamp": 1.0, "event_type": "o", "data": "apt-get install nginx\n", "sequence": 0}]'
+
+# Alternatively, upload a .cast file (parses and auto-compiles)
+curl -X POST http://localhost:8000/api/v1/sessions/{session_id}/cast \
+  -F "file=@recording.cast"
 ```
 
 3. **Compile to Ansible playbook:**
 ```bash
-curl -X POST http://localhost:8000/sessions/{session_id}/compile
+curl -X POST http://localhost:8000/api/v1/sessions/{session_id}/compile
 ```
+The response contains `artifact_url` and `download_url` for the generated role.
 
-4. **Download artifact:**
+4. **View the translation report:**
 ```bash
-curl http://localhost:8000/sessions/{session_id}/playbook -o role.zip
+curl http://localhost:8000/api/v1/sessions/{session_id}/report
 ```
 
 ## 📁 Project Structure
@@ -99,6 +106,7 @@ cli2ansible/
 │   ├── app.py                     # Application composition root
 │   ├── cli.py                     # CLI interface
 │   └── settings.py                # Configuration
+├── frontend/                      # Next.js web UI
 ├── tests/                         # Unit, integration, and API tests
 ├── alembic/                       # Database migrations
 ├── docker-compose.yml             # Local development environment
