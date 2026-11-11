@@ -52,7 +52,9 @@ class RulesEngine(TranslatorPort):
 
     def _apt_install(self, command: Command) -> Task | None:
         """Translate apt install and remove commands."""
-        match = re.match(r"apt(?:-get)?\s+(install|remove|purge)\s+(.+)", command.normalized)
+        match = re.match(
+            r"apt(?:-get)?\s+(install|remove|purge)\s+(?:-y\s+)?(.+)", command.normalized
+        )
         if match:
             action, package_list = match.groups()
             packages = package_list.strip().split()
