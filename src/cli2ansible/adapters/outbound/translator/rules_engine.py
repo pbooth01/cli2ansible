@@ -55,7 +55,9 @@ class RulesEngine(TranslatorPort):
         match = re.match(r"apt(?:-get)?\s+(install|remove|purge)\s+(.+)", command.normalized)
         if match:
             action, package_list = match.groups()
-            packages = package_list.strip().split()
+            packages = [arg for arg in package_list.split() if not arg.startswith("-")]
+            if not packages:
+                return None
             if action == "install":
                 return Task(
                     name=f"Install packages: {', '.join(packages)}",
