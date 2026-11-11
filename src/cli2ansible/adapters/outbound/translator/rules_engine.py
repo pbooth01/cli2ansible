@@ -79,6 +79,7 @@ class RulesEngine(TranslatorPort):
             args={"name": packages, "state": "present"},
             confidence=TaskConfidence.HIGH,
             original_command=command.raw,
+            become=command.sudo,
         )
 
     def _systemctl(self, command: Command) -> Task | None:
@@ -114,11 +115,11 @@ class RulesEngine(TranslatorPort):
         """Translate mkdir commands."""
         match = re.match(r"mkdir\s+(?:-p\s+)?(.+)", command.normalized)
         if match:
-            paths = match.group(1).split()
+            path = match.group(1).strip()
             return Task(
-                name=f"Create directory: {', '.join(paths)}",
+                name=f"Create directory: {path}",
                 module="file",
-                args={"path": paths, "state": "directory"},
+                args={"path": path, "state": "directory"},
                 confidence=TaskConfidence.HIGH,
                 original_command=command.raw,
                 become=command.sudo,
