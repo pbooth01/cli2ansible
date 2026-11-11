@@ -52,48 +52,34 @@ class RulesEngine(TranslatorPort):
 
     def _apt_install(self, command: Command) -> Task | None:
         """Translate apt install commands."""
-        match = re.match(r"apt(?:-get)?\s+install\s+(?:-y\s+)?(.+)", command.normalized)
-        if match:
-            packages = match.group(1).strip().split()
-            return Task(
-                name=f"Install packages: {', '.join(packages)}",
-                module="apt",
-                args={"name": packages, "state": "present", "update_cache": True},
-                confidence=TaskConfidence.HIGH,
-                original_command=command.raw,
-                become=command.sudo,
-            )
-        return None
+        task = self._package_install(command, r"apt(?:-get)?", "apt")
+        if task:
+            task.args["update_cache"] = True
+        return task
 
     def _yum_install(self, command: Command) -> Task | None:
         """Translate yum install commands."""
-        match = re.match(r"yum\s+install\s+(?:-y\s+)?(.+)", command.normalized)
-        if match:
-            packages = match.group(1).strip().split()
-            return Task(
-                name=f"Install packages: {', '.join(packages)}",
-                module="yum",
-                args={"name": packages, "state": "present"},
-                confidence=TaskConfidence.HIGH,
-                original_command=command.raw,
-                become=command.sudo,
-            )
-        return None
+        return self._package_install(command, r"yum", "yum")
 
     def _dnf_install(self, command: Command) -> Task | None:
         """Translate dnf install commands."""
-        match = re.match(r"dnf\s+install\s+(?:-y\s+)?(.+)", command.normalized)
-        if match:
-            packages = match.group(1).strip().split()
-            return Task(
-                name=f"Install packages: {', '.join(packages)}",
-                module="dnf",
-                args={"name": packages, "state": "present"},
-                confidence=TaskConfidence.HIGH,
-                original_command=command.raw,
-                become=command.sudo,
-            )
-        return None
+        return self._package_install(command, r"dnf", "dnf")
+
+    def _package_install(self, command: Command, binary: str, module: str) -> Task | None:
+        """Translate a package manager install command, ignoring CLI flags."""
+        match = re.match(rf"{binary}\s+install\s+(.+)", command.normalized)
+        if not match:
+            return None
+        packages = [p for p in match.group(1).split() if not p.startswith("-")]
+        if not packages:
+            return None
+        return Task(
+            name=f"Install packages: {', '.join(packages)}",
+            module=module,
+            args={"name": packages, "state": "present"},
+            confidence=TaskConfidence.HIGH,
+            original_command=command.raw,
+        )
 
     def _systemctl(self, command: Command) -> Task | None:
         """Translate systemctl commands."""
@@ -128,11 +114,11 @@ class RulesEngine(TranslatorPort):
         """Translate mkdir commands."""
         match = re.match(r"mkdir\s+(?:-p\s+)?(.+)", command.normalized)
         if match:
-            path = match.group(1).strip()
+            paths = match.group(1).split()
             return Task(
-                name=f"Create directory: {path}",
+                name=f"Create directory: {', '.join(paths)}",
                 module="file",
-                args={"path": path, "state": "directory"},
+                args={"path": paths, "state": "directory"},
                 confidence=TaskConfidence.HIGH,
                 original_command=command.raw,
                 become=command.sudo,
