@@ -191,7 +191,7 @@ API (Inbound) → Application → Domain ← Adapters (Outbound)
 The rules engine currently supports:
 
 - Package managers: `apt`, `yum`, `dnf`, `pip`, `npm`
-- System services: `systemctl`
+- System services: `systemctl start`, `stop`, `restart`, `reload`, `enable`, `disable`
 - File operations: `mkdir`, `cp`, `chown`, `chmod`
 - Version control: `git clone`
 - User management: `useradd`
