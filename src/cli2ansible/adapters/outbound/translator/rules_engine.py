@@ -96,10 +96,10 @@ class RulesEngine(TranslatorPort):
         return None
 
     def _systemctl(self, command: Command) -> Task | None:
-        """Translate systemctl commands."""
-        match = re.match(
+        """Translate supported single-service systemctl commands without dropping arguments."""
+        match = re.fullmatch(
             r"systemctl\s+(start|stop|restart|reload|enable|disable)\s+(\S+)",
-            command.normalized,
+            command.normalized.strip(),
         )
         if match:
             action, service = match.groups()

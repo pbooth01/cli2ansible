@@ -54,7 +54,16 @@ def test_systemctl_state_translation(
     assert task.original_command == raw
 
 
-@pytest.mark.parametrize("command", ["systemctl reload", "systemctl reload-or-restart nginx"])
+@pytest.mark.parametrize(
+    "command",
+    [
+        "systemctl reload",
+        "systemctl reload-or-restart nginx",
+        "systemctl reload nginx.service php-fpm.service",
+        "systemctl reload nginx.service && echo done",
+        "systemctl reload nginx.service --no-block",
+    ],
+)
 def test_unsupported_systemctl_fallback(translator: RulesEngine, command: str) -> None:
     """Incomplete or unsupported actions must remain shell tasks."""
     cmd = Command(session_id=uuid4(), raw=command, normalized=command)
