@@ -31,6 +31,39 @@ def test_apt_install_translation(translator: RulesEngine) -> None:
     assert task.become is True
 
 
+def test_apt_remove_translation(translator: RulesEngine) -> None:
+    """Test apt remove command translation."""
+    cmd = Command(
+        session_id=uuid4(),
+        raw="apt-get remove nginx",
+        normalized="apt-get remove nginx",
+        sudo=True,
+    )
+    task = translator.translate(cmd)
+
+    assert task is not None
+    assert task.module == "apt"
+    assert task.args["name"] == ["nginx"]
+    assert task.args["state"] == "absent"
+    assert task.args["purge"] is False
+
+
+def test_apt_purge_translation(translator: RulesEngine) -> None:
+    """Test apt purge command translation."""
+    cmd = Command(
+        session_id=uuid4(),
+        raw="apt purge apache2",
+        normalized="apt purge apache2",
+        sudo=True,
+    )
+    task = translator.translate(cmd)
+
+    assert task is not None
+    assert task.args["name"] == ["apache2"]
+    assert task.args["state"] == "absent"
+    assert task.args["purge"] is True
+
+
 def test_systemctl_start_translation(translator: RulesEngine) -> None:
     """Test systemctl start command translation."""
     cmd = Command(

@@ -51,14 +51,24 @@ class RulesEngine(TranslatorPort):
         )
 
     def _apt_install(self, command: Command) -> Task | None:
-        """Translate apt install commands."""
-        match = re.match(r"apt(?:-get)?\s+install\s+(?:-y\s+)?(.+)", command.normalized)
+        """Translate apt install and remove commands."""
+        match = re.match(r"apt(?:-get)?\s+(install|remove|purge)\s+(.+)", command.normalized)
         if match:
-            packages = match.group(1).strip().split()
+            action, package_list = match.groups()
+            packages = package_list.strip().split()
+            if action == "install":
+                return Task(
+                    name=f"Install packages: {', '.join(packages)}",
+                    module="apt",
+                    args={"name": packages, "state": "present", "update_cache": True},
+                    confidence=TaskConfidence.HIGH,
+                    original_command=command.raw,
+                    become=command.sudo,
+                )
             return Task(
-                name=f"Install packages: {', '.join(packages)}",
+                name=f"Remove packages: {', '.join(packages)}",
                 module="apt",
-                args={"name": packages, "state": "present", "update_cache": True},
+                args={"name": packages, "state": "absent", "purge": action == "purge"},
                 confidence=TaskConfidence.HIGH,
                 original_command=command.raw,
                 become=command.sudo,
