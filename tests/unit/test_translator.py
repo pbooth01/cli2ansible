@@ -31,21 +31,39 @@ def test_apt_install_translation(translator: RulesEngine) -> None:
     assert task.become is True
 
 
-def test_systemctl_start_translation(translator: RulesEngine) -> None:
-    """Test systemctl start command translation."""
-    cmd = Command(
-        session_id=uuid4(),
-        raw="systemctl start nginx",
-        normalized="systemctl start nginx",
-        sudo=True,
-    )
+@pytest.mark.parametrize(
+    ("action", "state"),
+    [("start", "started"), ("stop", "stopped"), ("restart", "restarted"), ("reload", "reloaded")],
+)
+@pytest.mark.parametrize("sudo", [False, True])
+def test_systemctl_state_translation(
+    translator: RulesEngine, action: str, state: str, sudo: bool
+) -> None:
+    """Translate service state actions while preserving privilege and source metadata."""
+    normalized = f"systemctl {action} nginx.service"
+    raw = f"sudo {normalized}" if sudo else normalized
+    cmd = Command(session_id=uuid4(), raw=raw, normalized=normalized, sudo=sudo)
     task = translator.translate(cmd)
 
     assert task is not None
+    assert task.name == f"{action.capitalize()} service: nginx.service"
     assert task.module == "systemd"
-    assert task.args["name"] == "nginx"
-    assert task.args["state"] == "started"
+    assert task.args == {"name": "nginx.service", "state": state}
     assert task.confidence == TaskConfidence.HIGH
+    assert task.become is sudo
+    assert task.original_command == raw
+
+
+@pytest.mark.parametrize("command", ["systemctl reload", "systemctl reload-or-restart nginx"])
+def test_unsupported_systemctl_fallback(translator: RulesEngine, command: str) -> None:
+    """Incomplete or unsupported actions must remain shell tasks."""
+    cmd = Command(session_id=uuid4(), raw=command, normalized=command)
+    task = translator.translate(cmd)
+
+    assert task is not None
+    assert task.module == "shell"
+    assert task.args == {"cmd": command}
+    assert task.confidence == TaskConfidence.LOW
 
 
 def test_mkdir_translation(translator: RulesEngine) -> None:

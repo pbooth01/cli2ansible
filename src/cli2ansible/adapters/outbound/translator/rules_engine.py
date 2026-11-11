@@ -98,12 +98,17 @@ class RulesEngine(TranslatorPort):
     def _systemctl(self, command: Command) -> Task | None:
         """Translate systemctl commands."""
         match = re.match(
-            r"systemctl\s+(start|stop|restart|enable|disable)\s+(\S+)",
+            r"systemctl\s+(start|stop|restart|reload|enable|disable)\s+(\S+)",
             command.normalized,
         )
         if match:
             action, service = match.groups()
-            state_map = {"start": "started", "stop": "stopped", "restart": "restarted"}
+            state_map = {
+                "start": "started",
+                "stop": "stopped",
+                "restart": "restarted",
+                "reload": "reloaded",
+            }
             if action in state_map:
                 return Task(
                     name=f"{action.capitalize()} service: {service}",
